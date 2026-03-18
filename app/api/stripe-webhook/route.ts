@@ -2,6 +2,11 @@ import Stripe from "stripe";
 import { headers } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",   //|----- 🟡🟡 PATCHED 18/3/26
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""    //-----|🟡🟡 18/3/26
+);
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);                              
 
 function getCurrentMonthKey() {
@@ -22,11 +27,6 @@ const quotaMap: Record<string, number> = {          //|----- 🟡🟡 PATCHED 15
 export async function POST(req: Request) {
   const body = await req.text();
   const signature = (await headers()).get("stripe-signature");
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "",   //|----- 🟡🟡 PATCHED 18/3/26
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""    //-----|🟡🟡 18/3/26
-  ); 
 
   if (!signature) {
     return new Response("Missing stripe-signature", { status: 400 });

@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",        //🟡🟡 PATCHED 18/3/26
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""     //🟡🟡 PATCHED 18/3/26
+);
+
 function getCurrentMonthKey() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
 export async function POST(req: Request) {
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "",        //🟡🟡 PATCHED 18/3/26
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""     //🟡🟡 PATCHED 18/3/26
-  );
 
   try {
 
