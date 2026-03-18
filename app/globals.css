@@ -1,0 +1,729 @@
+@import "tailwindcss";
+
+/* ======================
+   BASE COLOR VARIABLES
+====================== */
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* SCRIPTA COLORS */
+  --scripta-blue: #1A73E8;
+  --scripta-light: #F2F6FA;
+}
+
+/* ======================
+   DARK MODE
+====================== */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+/* ======================
+   BODY BASE STYLE
+====================== */
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* =====================================================
+   SCRIPTA LANDING PAGE STYLES
+===================================================== */
+
+
+/* ======================
+   NAVBAR
+====================== */
+
+.navbar{
+  position:fixed;
+  top:0;
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 20px;
+  background:white;
+/*color:white;   /* ADD THIS */
+  z-index:100;
+}
+
+.nav-right a,
+.login-btn{
+  color:black;
+  padding:5px 15px;
+}
+
+.logo{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight:600;
+}
+
+.logo img{
+  height:40px;
+  width:auto;
+  display:block; 
+  transition:opacity .2s ease;
+}
+
+.logo img:hover{
+  opacity:0.8;
+}
+
+/* ======================
+   SCROLL BEHAVIOR IMPROVE
+====================== */
+html {
+  scroll-behavior: smooth;
+}
+
+section{
+  scroll-margin-top:20px;
+}
+
+/* ======================
+   HERO SECTION
+====================== */
+
+.hero{
+  position:relative;
+  height:90vh;
+  background-image:url("/hero-bg.png");
+  background-size:cover;
+  background-position:center 35%;
+  display:flex;
+  align-items:center;
+}
+
+.hero-overlay{
+  position:absolute;
+  inset:0;
+  background:black;
+  opacity:.3;
+}
+
+/* ==================================
+   HERO TEXT BOX (TRANSPARENT PANEL)
+================================== */
+
+.hero-text-box{
+  background: rgba(0,0,0,0.35);  /* OPACITY CONTROL */
+  padding:20px 70px;             /* BOX SIZE CONTROL */
+  width:700px;                   /* WIDTH CONTROL */
+  border: radius 0px;             /* OPTIONAL ROUNDING */
+  margin-top: 55px;
+}
+
+.hero-content{
+  position:relative;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;   /* ALIGN WITH DESCRIPTION */
+  width:100%;
+  padding-top:80px;
+  padding:0 80px;
+  color:white;
+}
+
+.hero-title{
+  font-family: "Fraunces light", serif;
+  font-size:80px;
+  line-height:1.0;
+  font-weight:200;
+}
+
+.hero-desc{
+  font-family: "Fraunces light", serif;
+  font-size:34px;
+  margin-top:10px;
+  letter-spacing: 1.5px;
+}
+
+.hero-right{
+  margin-top:70px;   /* POSITION CONTROL */
+}
+
+.cta-btn{
+  background:var(--scripta-blue);
+  color:white;
+  padding:18px 36px;
+  border:none;
+  cursor:pointer;
+}
+
+/* ==================================
+   HERO CTA BUTTON
+================================== */
+
+.cta-btn{
+
+  width:360px;          /* BUTTON WIDTH */
+  height:62px;          /* BUTTON HEIGHT */
+  margin-top:80px;
+  font-size:18px;
+  letter-spacing:1px;
+  background:var(--scripta-blue);
+  color:white;
+  border:none;
+  cursor:pointer;
+}
+
+.cta-btn:hover{
+  background:#0B5ED7;
+}
+
+/* ==================================
+   HERO BOTTOM DIVIDER
+================================== */
+
+.hero-divider{
+  width:100%;
+  height:10px;          /* THICKNESS CONTROL */
+  margin-top:10px;
+  background:black;
+}
+
+
+/* ======================
+   BUTTONS
+====================== */
+
+button{
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+/* ======================
+   SECTIONS
+====================== */
+
+.section{
+  padding:120px 80px;
+  text-align:center;
+}
+
+.section h2{
+  font-family: "Bodoni Moda", serif;
+}
+
+.section.light{
+  background:var(--scripta-light);
+}
+
+/* ==========================================
+   FEATURES SECTION
+========================================== */
+
+.features-section{
+  padding:120px 80px;
+  text-align:center;
+  background:white;
+}
+
+/* SECTION TITLE */
+.features-title{
+  font-family:"Fraunces light",serif;
+  font-size:50px;
+  margin-bottom:60px;
+  text-transform:uppercase;
+}
+
+/* GRID LAYOUT */
+.features-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:100px;
+  max-width:1200px;
+  margin:auto;
+}
+
+/* ==========================================
+   FEATURE CARD BOX STYLE
+========================================== */
+
+.feature-card{
+  background:#f3f6fb;            /* light bluish gray box color */
+  border-radius:28px;            /* <-- BORDER CURVE CONTROL */
+  padding:40px 30px;
+  text-align:center;
+  min-height:220px;
+  transition:all .25s ease;
+  border:1px solid rgba(0,0,0,0.05);
+}
+
+/* HOVER EFFECT */
+.feature-card:hover{
+  transform:translateY(-6px);
+  box-shadow:0 10px 30px rgba(0,0,0,0.08);
+}
+
+/* ==========================================
+   FEATURE ICON ALIGNMENT
+========================================== */
+/* ICON */
+.feature-icon img{
+  width:70px;        /* icon size control */
+  height:70px;
+  display:flex;
+  justify-content:center; 
+  align-items:center;
+  margin-left:100px;
+  margin-bottom:35px;
+  object-fit:contain;
+}
+
+/* TITLE */
+.feature-card h3{
+  font-family:"Fraunces light",serif;
+  font-size:30px;
+  line-height:1.0;
+  margin-bottom:12px;
+}
+
+/* DESCRIPTION */
+.feature-card p{
+  font-size:16px;
+  line-height:1.5;
+  color:#555;
+}
+
+/* ==========================================
+   WHY SCRIPTA SECTION
+========================================== */
+
+.why-scripta-section {
+  padding:80px 50px;
+  background:linear-gradient(
+    180deg,
+    #2c5cff 0%,
+    #2b55e0 100%
+  );
+  text-align:center;
+}
+
+/* SECTION TITLE */
+.why-scripta-title {
+  font-family:"Fraunces light",serif;
+  font-size:50px;
+  color:white;
+  margin-bottom:50px;
+  text-transform:uppercase;
+}
+
+/* GRID LAYOUT */
+.why-grid {
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:100px;
+  max-width:1200px;
+  margin:auto;
+}
+
+/* FEATURE BOX */
+.why-box {
+  background:#5c7ce8;
+  padding:40px 35px;
+  border-radius:28px;
+  color:white;
+  box-shadow:0 15px 40px rgba(0,0,0,0.15);
+  text-align:center;
+}
+
+/* BOX TITLE */
+.why-box h3 {
+  font-family:"Fraunces light",serif;
+  font-size:30px;
+  line-height:1.0;
+  margin-bottom:14px;
+}
+
+/* BOX TEXT */
+.why-box p {
+  font-size:16px;
+  line-height:1.5;
+}
+
+/* ==========================================
+   CONTACT SECTION
+========================================== */
+.contact-section{
+  padding:80px 40px;
+  background:white;
+  text-align:center;
+}
+
+/* TITLE */
+.contact-title{
+  font-family:"Fraunces light",serif;
+  font-size:50px;
+  margin-bottom:20px;
+}
+
+/* SUBTEXT */
+.contact-subtext{
+  font-size:18px;
+  color:#555;
+  margin-bottom:50px;
+}
+
+/* FORM */
+.contact-form{
+  max-width:600px;
+  margin:auto;
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+}
+
+/* INPUTS */
+.contact-input{
+  padding:16px 18px;
+  border-radius:10px;
+  border:1px solid #ddd;
+  font-size:16px;
+}
+
+/* TEXTAREA */
+.contact-textarea{
+  padding:16px 18px;
+  border-radius:10px;
+  border:1px solid #ddd;
+  font-size:16px;
+  min-height:150px;
+  resize:vertical;
+}
+
+/* BUTTON */
+.contact-button{
+  background:#2563eb;
+  color:white;
+  border:none;
+  padding:16px;
+  border-radius:10px;
+  font-size:16px;
+  cursor:pointer;
+  transition:all .2s ease;
+}
+
+.contact-button:hover{
+  background:#1d4ed8;
+}
+
+/* ==========================================
+   TAGLINE STRIP
+========================================== */
+
+.tagline-strip{
+  background:black;
+  color:white;
+  text-align:center;
+  padding:10px 100px;
+  font-family:"Fraunces light", serif;
+  font-weight:300;
+  font-size:40px;
+  letter-spacing:2px;
+}
+
+/* ==========================================
+   FOOTER
+========================================== */
+.footer{
+  padding:30px 20px;
+  background:#f4f6fb;
+  text-align:center;
+  border-top:1px solid #e5e7eb;
+}
+
+/* FOOTER LINKS */
+.footer-links{
+  font-size:14px;
+  margin-bottom:20px;
+}
+
+.footer-links a{
+  color:#333;
+  text-decoration:none;
+  margin:0 10px;
+}
+
+.footer-links a:hover{
+  text-decoration:underline;
+}
+
+/* COPYRIGHT TEXT */
+.footer-text{
+  font-size:13px;
+  color:#777;
+}
+
+/* ======================
+   MAINPAGE SCROLL HOME BUTTON
+====================== */
+
+.scroll-home{
+  position:fixed;
+  bottom:30px;
+  right:30px;
+  width:50px;
+  height:50px;
+  background:var(--scripta-blue);
+  color:white;
+  border:none;
+  font-size:24px;
+  cursor:pointer;
+}
+
+/* ==========================================
+   PRIVACY POLICY PAGE
+========================================== */
+
+.policy-page{
+  max-width:900px;
+  margin:auto;
+  padding:120px 40px;
+}
+
+.policy-title{
+  font-family:"Fraunces light", serif;
+  font-size:42px;
+  margin-bottom:10px;
+}
+
+.policy-updated{
+  color:#666;
+  margin-bottom:40px;
+}
+
+.policy-section{
+  margin-bottom:40px;
+}
+
+.policy-section h2{
+  font-size:22px;
+  margin-bottom:12px;
+}
+
+.policy-section p{
+  line-height:1.7;
+  color:#444;
+}
+
+/* ==========================================
+   FLOATING HOME BUTTON
+========================================== */
+.home-button{
+  position:fixed;
+  bottom:30px;
+  right:30px;
+  width:50px;
+  height:50px;
+  background:#ff0037; /* red */
+  color:white;
+  border-radius:50%;
+  border:2px solid white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:22px;
+  text-decoration:none;
+  box-shadow:0 6px 18px rgba(0,0,0,0.25);
+  transition:all .2s ease;
+}
+
+.home-button:hover{
+  transform:scale(1.08);
+  background:#be123c;
+}
+
+/* ==========================================
+   PRICING PAGE
+========================================== */
+.pricing-page{
+  padding:90px 80px;
+  text-align:center;
+  min-height:100vh;
+}
+
+/* PAGE TITLE */
+.pricing-title{
+  font-family:"Fraunces light",serif;
+  font-size:50px;
+  padding:10px;
+  margin-bottom:20px; 
+  text-transform:uppercase;
+}
+
+/* PRICING SUBTITLE */
+.pricing-subtitle{
+/*font-family:"Bodoni Moda",serif;*/ 
+  font-size:16px;
+  margin-bottom:30px;   /* increase spacing above plan containers */
+  color:#555;
+}
+
+/* CURRENT PLAN STATUS */
+.plan-status{
+  margin-bottom:80px;
+}
+
+.cancel-warning{
+  color:orange;
+  margin-top:10px;
+}
+
+/* PRICING GRID */
+.pricing-grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:30px;
+  max-width:1400px;
+  margin:auto;
+}
+
+/* PRICING CARD */
+.pricing-card{
+  background:#eef4ff;
+  border-radius:16px;
+  padding:40px 30px;
+  border:1px solid rgba(0,0,0,0.05);
+  box-shadow:0 10px 25px rgba(0,0,0,0.08);
+  transition:all 0.25s ease;
+}
+
+/* HOVER FLOAT EFFECT */
+.pricing-card:hover{
+  transform:translateY(-10px);
+  box-shadow:0 15px 35px rgba(0,0,0,0.15);
+}
+
+/* FEATURED PLAN */
+.featured{
+  background:#2c5cff;
+  border:2px solid #2c5cff;
+  color:white;
+  transform:scale(1.04);
+  box-shadow:0 10px 25px rgba(44,92,255,0.25);
+}
+
+.price{
+  font-size:28px;
+  margin:15px 0;
+}
+
+.pricing-card ul{
+  list-style:none;
+  padding:0;
+  margin-bottom:25px;
+}
+
+.pricing-card li{
+  margin:10px 0;
+}
+
+/* BUTTON */
+.pricing-card button{
+  background:#2c5cff;
+  color:white;
+  border:none;
+  padding:12px 22px;
+  border-radius:10px;
+  cursor:pointer;
+}
+
+/* FEATURED BUTTON CONTRAST */
+.featured button{
+  background:rgb(215, 220, 250);
+  color:#2c5cff;
+  font-weight:600;
+}
+
+.featured button:hover{
+  background:white;
+}
+
+.billing-manage{
+  margin-top:40px;
+  text-align:center;
+}
+
+/* TAGLINE STRIP */
+.tagline-strip{
+  margin-top:0px;
+  background:black;
+  color:white;
+  padding:8px;
+  font-family:"Fraunces Light", serif;
+  font-size:30px;
+}
+
+/* =============================
+     AUTH PAGES
+============================= */
+.auth-page{
+  min-height:80vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.auth-container{
+  width:420px;
+  padding:40px;
+  background:white;
+  border-radius:14px;
+  box-shadow:0 8px 25px rgba(0,0,0,0.08);
+  text-align:center;
+}
+
+.auth-title{
+  font-family:"Fraunces Light", serif;
+  font-size:32px;
+  margin-bottom:10px;
+}
+
+.auth-subtitle{
+  font-size:14px;
+  color:#666;
+  margin-bottom:25px;
+}
+
+.auth-input{
+  width:100%;
+  padding:12px;
+  border:1px solid #ddd;
+  border-radius:8px;
+  margin-bottom:16px;
+}
+
+.auth-button{
+  width:100%;
+  padding:12px;
+  background:#2c5cff;
+  color:white;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.auth-button:hover{
+  background:#2047d6;
+}
+
+.auth-status{
+  margin-top:15px;
+  font-size:14px;
+}
+
+.auth-switch{
+  margin-top:20px;
+  font-size:14px;
+}

@@ -1,0 +1,322 @@
+import Stripe from "stripe";
+import { headers } from "next/headers";
+import { createClient } from "@supabase/supabase-js";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+function getCurrentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/* =========================
+       page_limit QUOTA
+    ========================= */
+const quotaMap: Record<string, number> = {          //|----- 🟡🟡 PATCHED 15/3/26
+  free: 30,
+  lite: 100,
+  student: 200,
+  pro: 500
+};                                          //-----|🟡🟡 15/3/26
+
+export async function POST(req: Request) {
+  const body = await req.text();
+  const signature = (await headers()).get("stripe-signature");
+
+  if (!signature) {
+    return new Response("Missing stripe-signature", { status: 400 });
+  }
+
+  let event: Stripe.Event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      body,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
+  } catch (err: any) {
+    return new Response(`Webhook Error: ${err.message}`, { status: 400 });
+  }
+
+  /* =========================================================
+     CHECKOUT SESSION COMPLETED (Bootstrap)
+  ========================================================== */
+  if (event.type === "checkout.session.completed") {
+
+    const session = event.data.object as Stripe.Checkout.Session;
+
+    if (!session.subscription) {
+      return new Response("No subscription", { status: 200 });
+    }
+
+    if (!session.customer) {
+      return new Response("No customer", { status: 200 });
+    }
+
+    const subscription = await stripe.subscriptions.retrieve(
+      session.subscription as string
+    ) as Stripe.Subscription;
+
+    const userId = subscription.metadata?.userId;
+    const plan = session.metadata?.plan;
+
+    if (!userId || !plan) {
+      return new Response("Missing metadata", { status: 200 });
+    }
+
+    const now = new Date().toISOString();
+
+    /* =========================
+       1️⃣ Upsert subscriptions
+    ========================= */
+    await supabase.from("subscriptions").upsert({
+      user_id: userId,
+      plan,
+      status: subscription.status,
+      updated_at: now,
+    }, {
+      onConflict: "user_id"
+    });
+
+    /* =========================
+       2️⃣ Update profiles
+       (STORE stripe_customer_id HERE)
+    ========================= */
+    await supabase.from("profiles")
+      .update({
+        subscription_tier: plan,
+        subscription_status: subscription.status,
+        stripe_customer_id: session.customer as string, // ✅ NEW
+        updated_at: now,
+      })
+      .eq("user_id", userId);
+
+    /* =========================
+       3️⃣ Update user_usage tier
+    ========================= */
+  /*await supabase.from("user_usage")
+      .update({
+        tier: plan,
+        updated_at: now,
+      })
+      .eq("user_id", userId)
+      .eq("month_key", getCurrentMonthKey());
+  }*/
+
+  /*const quotaMap: Record<string, number> = {   
+      free: 30,
+      lite: 100,
+      student: 200,
+      pro: 500
+    };*/
+
+    await supabase.from("user_usage")       //|-----🟡🟡 PATCHED 15/3/26
+      .upsert({
+        user_id: userId,
+        month_key: getCurrentMonthKey(),
+        tier: plan,
+      /*page_limit: quotaMap[plan],*/
+        page_limit: quotaMap[plan as keyof typeof quotaMap],     //🟡🟡 PATCHED 15/3/26
+        updated_at: now
+      }, {
+        onConflict: "user_id,month_key"
+      });                                     //-----|🟡🟡 15/3/26
+  }    
+
+  /* =========================================================
+   SUBSCRIPTION UPDATED (Cancel at Period End / Status Change)
+  ========================================================== */
+  if (event.type === "customer.subscription.updated") {
+
+    const subscription = event.data.object as Stripe.Subscription;
+
+    const userId = subscription.metadata?.userId;
+    if (!userId) {
+      return new Response("No metadata", { status: 200 });
+    }
+
+    const now = new Date().toISOString();
+
+    await supabase.from("subscriptions")
+      .update({
+        status: subscription.status,
+        cancel_at_period_end: subscription.cancel_at_period_end ?? false,
+        updated_at: now,
+      })
+      .eq("user_id", userId);
+
+    await supabase.from("profiles")
+      .update({
+        subscription_status: subscription.status,
+        updated_at: now,
+      })
+      .eq("user_id", userId);
+
+    console.log("🟡 Subscription updated (cancel_at_period_end synced)");
+  }
+
+  /* =========================================================
+   INVOICE PAID (Authoritative Renewal)
+  ========================================================== */
+  if (event.type === "invoice.paid") {
+
+    console.log("🔥 INVOICE PAID TRIGGERED");
+
+    const invoice = event.data.object as Stripe.Invoice;
+
+    // 🔎 Extract subscription ID safely (v20 structure)
+    const parent = invoice.parent as any;
+    const subscriptionId =
+      parent?.subscription_details?.subscription ||
+      parent?.subscription ||
+      null;
+
+    if (!subscriptionId) {
+      console.log("❌ No subscription ID found in invoice");
+      return new Response("No subscription on invoice", { status: 200 });
+    }
+
+    // 🔎 Extract real billing boundary from line item period
+    const firstLine = invoice.lines?.data?.[0] as any;
+    const billingPeriodEnd = firstLine?.period?.end;
+
+    if (!billingPeriodEnd) {
+      console.log("❌ No billing period end found in invoice line");
+      return new Response("Missing billing period", { status: 200 });
+    }
+
+    console.log("✅ Billing period end:", billingPeriodEnd);
+
+    // 🔎 Retrieve subscription for metadata
+    const subscription = await stripe.subscriptions.retrieve(
+      subscriptionId
+    ) as Stripe.Subscription;
+
+    const userId = subscription.metadata?.userId;
+    const plan = subscription.metadata?.plan;
+
+    if (!userId || !plan) {
+      console.log("❌ Missing metadata on subscription");
+      return new Response("Missing metadata", { status: 200 });
+    }
+
+    // ✅ Update subscriptions table
+  /*await supabase.from("subscriptions")
+      .update({
+        status: subscription.status,
+        current_period_end: new Date(
+          billingPeriodEnd * 1000
+        ).toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId);*/
+
+      // ✅ Upsert subscriptions table (ONE ROW PER USER)
+      await supabase.from("subscriptions")          //|-----🟡🟡 PATCHED
+        .upsert({
+          user_id: userId,
+          plan: plan,
+          status: subscription.status,
+          current_period_end: new Date(
+            billingPeriodEnd * 1000
+          ).toISOString(),
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: "user_id"
+        });                                       //-----|🟡🟡
+
+    // ✅ Sync profiles table
+    await supabase.from("profiles")
+      .update({
+        subscription_status: subscription.status,
+        subscription_tier: plan,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId);
+
+    // ✅ Sync usage tier alignment
+  /*await supabase.from("user_usage")
+      .update({
+        tier: plan,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId)
+      .eq("month_key", getCurrentMonthKey());*/
+    
+  /*const quotaMap: Record<string, number> = {      
+      free: 30,
+      lite: 100,
+      student: 200,
+      pro: 500
+    };*/
+
+    await supabase.from("user_usage")           //|-----🟡🟡 PATCHED 15/3/26
+      .upsert({
+        user_id: userId,
+        month_key: getCurrentMonthKey(),
+        tier: plan,
+      /*page_limit: quotaMap[plan],*/
+        page_limit: quotaMap[plan as keyof typeof quotaMap],   //🟡🟡 PATCHED 15/3/26
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: "user_id,month_key"
+      });                                       //-----|🟡🟡 15/3/26
+
+    console.log("🎯 Subscription renewal synced successfully");
+  }
+
+  /* =========================================================
+     SUBSCRIPTION DELETED / EXPIRED
+  ========================================================== */
+  if (event.type === "customer.subscription.deleted") {
+    const subscription = event.data.object as Stripe.Subscription;
+
+    const userId = subscription.metadata?.userId;
+    if (!userId) {
+      return new Response("No metadata", { status: 200 });
+    }
+
+    await supabase.from("subscriptions")
+      .update({
+        status: "expired",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId);
+
+    await supabase.from("profiles")
+      .update({
+        subscription_status: "expired",
+        subscription_tier: "free",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId);
+
+  /*await supabase.from("user_usage")
+      .update({
+        tier: "free",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId)
+      .eq("month_key", getCurrentMonthKey());*/
+    
+    await supabase.from("user_usage")           //|-----🟡🟡 PATCHED 15/3/26
+      .upsert({
+        user_id: userId,
+        month_key: getCurrentMonthKey(),
+        tier: "free",
+      /*page_limit: 30,*/
+        page_limit: quotaMap["free"],       //🟡🟡 PATCHED 15/3/26
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: "user_id,month_key"
+      });                                       //-----|🟡🟡 15/3/26
+  }
+
+  return new Response("OK", { status: 200 });
+}
