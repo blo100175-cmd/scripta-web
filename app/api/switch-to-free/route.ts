@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || "",        //🟡🟡 PATCHED 18/3/26
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""     //🟡🟡 PATCHED 18/3/26
-);
+  );
 
   try {
 
