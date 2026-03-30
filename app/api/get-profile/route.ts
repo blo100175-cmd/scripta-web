@@ -1,10 +1,25 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+
+function getSupabase() {                    //|-----🟡🟡PATCHED 20/3/26
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !key) {
+    throw new Error("Missing Supabase ENV");
+  }
+
+  return createClient(url, key);
+}                         //-----|🟡🟡20/3/26
+
 
 /* =========================
    POST — Hybrid CSR Profile Fetch
 ========================= */
 export async function POST(req: Request) {
+
+  const supabase = getSupabase(); // ✅ ONLY HERE    //🟡🟡 PATCHED 20/3/26
+
   try {
     const body = await req.json();
     const userId = body?.userId;
@@ -15,11 +30,6 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || "",   //|----- 🟡🟡 PATCHED 18/3/26
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""    //-----|🟡🟡 18/3/26
-    ); 
 
     /* =========================
        1️⃣ Fetch profile

@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",        //🟡🟡 PATCHED 18/3/26
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""     //🟡🟡 PATCHED 18/3/26
-);
+function getSupabase() {                //|-----🟡🟡PATCHED 20/3/26
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !key) {
+    throw new Error("Missing Supabase ENV");
+  }
+
+  return createClient(url, key);
+}                                       //-----|🟡🟡 20/3/26
 
 function getCurrentMonthKey() {
   const now = new Date();
@@ -12,6 +18,8 @@ function getCurrentMonthKey() {
 }
 
 export async function POST(req: Request) {
+  
+  const supabase = getSupabase(); // ✅ ONLY HERE  🟡🟡PATCHED 20/3/26
 
   try {
 
@@ -82,7 +90,5 @@ export async function POST(req: Request) {
       { error: error.message },
       { status: 500 }
     );
-
   }
-
 }

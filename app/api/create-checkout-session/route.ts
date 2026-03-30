@@ -1,13 +1,23 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+/*const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);*/
+
+function getStripe() {                       //|-----🟡🟡 PATCHED 30/3/26
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    throw new Error("Missing Stripe key");
+  }
+  return new Stripe(key);
+}                                           //-----|🟡🟡 30/3/26
 
 export async function POST(req: Request) {
 
   try {
 
     const { userId, plan } = await req.json();
+
+    const stripe = getStripe();         //🟡🟡 PATCHED 30/3/26
 
     /* =========================
        VALIDATION

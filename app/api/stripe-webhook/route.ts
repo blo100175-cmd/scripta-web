@@ -2,12 +2,24 @@ import Stripe from "stripe";
 import { headers } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",   //|----- 🟡🟡 PATCHED 18/3/26
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""    //-----|🟡🟡 18/3/26
-);
+function getSupabase() {                 //|-----🟡🟡 PATCHED 20/3/26
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);                              
+  if (!url || !key) {
+    throw new Error("Missing Supabase ENV");
+  }
+
+  return createClient(url, key);
+}
+
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    throw new Error("Missing Stripe key");
+  }
+  return new Stripe(key);
+}                                   //-----|🟡🟡 20/3/26
 
 function getCurrentMonthKey() {
   const now = new Date();
@@ -25,9 +37,13 @@ const quotaMap: Record<string, number> = {          //|----- 🟡🟡 PATCHED 15
 };                                          //-----|🟡🟡 15/3/26
 
 export async function POST(req: Request) {
+
+  const stripe = getStripe();      // ✅ lazy init  //🟡🟡 PATCHED 20/3/26
+  const supabase = getSupabase();  // ✅ lazy init  //🟡🟡 PATCHED 20/3/26
+
   const body = await req.text();
   const signature = (await headers()).get("stripe-signature");
-
+  
   if (!signature) {
     return new Response("Missing stripe-signature", { status: 400 });
   }
