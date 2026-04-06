@@ -60,6 +60,8 @@ export async function POST(req: Request) {
     return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
+  console.log("🔥 STRIPE EVENT:", event.type);  //WEBHOOK LOGGING 🟡🟡 PATCHED 6/4/26
+
   /* =========================================================
      CHECKOUT SESSION COMPLETED (Bootstrap)
   ========================================================== */
@@ -82,11 +84,24 @@ export async function POST(req: Request) {
     const userId = subscription.metadata?.userId;
     const plan = session.metadata?.plan;
 
-    if (!userId || !plan) {
+    console.log("✅ CHECKOUT COMPLETED", { userId, plan });     //🟡🟡 PATCHED 6/4/26 - SUCCESS LOGGING
+
+  /*if (!userId || !plan) {
       return new Response("Missing metadata", { status: 200 });
-    }
+    }*/
+
+    if (!userId || !plan) {                   //|-----FAILSAFE 🟡🟡 PATCHED 6/4/26
+      console.error("❌ Missing metadata (checkout.session.completed)", {
+        userId,
+        plan,
+        session
+      });
+      return new Response("Missing metadata", { status: 400 });
+    }                   //-----|🟡🟡  6/4/26
 
     const now = new Date().toISOString();
+
+    console.log("✅ CHECKOUT COMPLETED", { userId, plan });   //🟡🟡 PATCHED 6/4/26 - SUCCESS LOGGING
 
     /* =========================
        1️⃣ Upsert subscriptions
@@ -217,10 +232,21 @@ export async function POST(req: Request) {
     const userId = subscription.metadata?.userId;
     const plan = subscription.metadata?.plan;
 
-    if (!userId || !plan) {
+    console.log("✅ INVOICE PAID", { userId, plan });  //🟡🟡 PATCHED 6/4/26 - SUCCESS LOGGING
+  
+    /*if (!userId || !plan) {
       console.log("❌ Missing metadata on subscription");
       return new Response("Missing metadata", { status: 200 });
-    }
+    }*/
+
+    if (!userId || !plan) {                 //|----- 🟡🟡 PATCHED 6/4/26 -FAILSAFE
+      console.error("❌ Missing metadata (invoice.paid)", {
+        userId,
+        plan,
+        subscription
+      });
+      return new Response("Missing metadata", { status: 400 });
+    }                   //-----| 🟡🟡 PATCHED 6/4/26
 
     // ✅ Update subscriptions table
   /*await supabase.from("subscriptions")
