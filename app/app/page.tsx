@@ -52,6 +52,8 @@ export default function Home() {
   /* ---------------- AUTH SESSION ---------------- */
   useEffect(() => {
 
+    console.log("URL DEBUG:", window.location.href);    //🟡🟡 PATCHED 7/4/26
+
     // ========== AFFILIATE REF CAPTURE ==========               //|-----🟡🟡 PATCHED 6/4/26 - AFFILIATE SYSTEM
     const params = new URLSearchParams(window.location.search);
     const ref = params.get("ref");
