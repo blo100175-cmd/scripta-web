@@ -311,6 +311,59 @@ export async function POST(req: Request) {
       });                                       //-----|🟡🟡 15/3/26
 
     console.log("🎯 Subscription renewal synced successfully");
+    
+    // ========== AFFILIATE COMMISSION ENGINE ==========   //|-----🟡🟡 PATCHED 6/4/26 - AFFILIATE COMMISSION
+
+    // 🔎 Get amount (Stripe sends in cents)
+    const amount = (invoice.amount_paid || 0) / 100;
+
+    // 🔎 Determine type
+    const isInitial = invoice.billing_reason === "subscription_create";
+
+    // 🔎 Get referral
+    const { data: referral } = await supabase
+      .from("referrals")
+      .select("*")
+      .eq("referred_user_id", userId)
+      .maybeSingle();
+
+    if (referral) {
+      const rate = isInitial ? 0.15 : 0.10;
+      const commission = amount * rate;
+
+      // 🔁 Update referral
+      await supabase
+        .from("referrals")
+        .update({
+          total_paid: (referral.total_paid || 0) + amount,
+          total_commission:
+            (referral.total_commission || 0) + commission,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("referred_user_id", userId);
+
+      // 🔁 Get current affiliate value
+      const { data: affiliate } = await supabase
+        .from("affiliates")
+        .select("total_earned")
+        .eq("user_id", referral.referrer_user_id)
+        .single();
+
+      // 🔁 Update affiliate
+      await supabase
+        .from("affiliates")
+        .update({
+          total_earned: (referral.total_commission || 0) + commission,
+        })
+        .eq("user_id", referral.referrer_user_id);
+
+      console.log("💰 Affiliate commission recorded", {
+        userId,
+        amount,
+        commission,
+        type: isInitial ? "initial" : "recurring",
+      });
+    }                       //-----|🟡🟡 PATCHED 6/4/26
   }
 
   /* =========================================================

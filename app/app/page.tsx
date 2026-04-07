@@ -1,3 +1,4 @@
+//SCRIPTA V1.1.060426 - AFFILIATE BUILD-IN 
 "use client";
 
 import { useState, useEffect } from "react";
@@ -51,6 +52,14 @@ export default function Home() {
   /* ---------------- AUTH SESSION ---------------- */
   useEffect(() => {
 
+    // ========== AFFILIATE REF CAPTURE ==========               //|-----🟡🟡 PATCHED 6/4/26 - AFFILIATE SYSTEM
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+
+    if (ref) {
+      localStorage.setItem("ref_code", ref);
+    }                                                 //-----|🟡🟡 6/4/26
+
     /* ===== ANON USER ID ===== */
     let storedAnon = localStorage.getItem("anon_user_id");
 
@@ -62,10 +71,42 @@ export default function Home() {
     setAnonId(storedAnon);
 
     /* ===== AUTH SESSION ===== */
-    supabase.auth.getSession().then(({ data }) => {
+
+  /*supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null);
       setAuthLoading(false);
-    });
+    });*/
+
+    supabase.auth.getSession().then(async ({ data }) => {   //|----- 🟡🟡 PATCHED 6/4/26 - AFFILIATE REGISTER
+      const currentUser = data.session?.user ?? null;
+
+      setUser(currentUser);
+      setAuthLoading(false);
+
+      // ========== AFFILIATE REGISTER ==========
+      if (currentUser) {
+        const refCode = localStorage.getItem("ref_code");
+
+        if (refCode) {
+          try {
+            await fetch("/api/affiliate/register", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                referral_code: refCode,
+                user_id: currentUser.id,
+              }),
+            });
+
+            localStorage.removeItem("ref_code");
+          } catch (e) {
+            console.error("Affiliate register failed", e);
+          }
+        }
+      }
+    });                   //-----| 🟡🟡 PATCHED 6/4/26
 
     const {
       data: { subscription },
