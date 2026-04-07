@@ -207,7 +207,7 @@ export async function POST(req: Request) {
       parent?.subscription_details?.subscription ||
       parent?.subscription ||
       null;
-
+    
     if (!subscriptionId) {
       console.log("❌ No subscription ID found in invoice");
       return new Response("No subscription on invoice", { status: 200 });
@@ -314,13 +314,13 @@ export async function POST(req: Request) {
     
     // ========== AFFILIATE COMMISSION ENGINE ==========   //|-----🟡🟡 PATCHED 6/4/26 - AFFILIATE COMMISSION
 
-    // 🔎 Get amount (Stripe sends in cents)
+    // 🔎 Get amount (Stripe sends in cents)---------------------
     const amount = (invoice.amount_paid || 0) / 100;
 
-    // 🔎 Determine type
+    // 🔎 Determine type ----------------------------------------
     const isInitial = invoice.billing_reason === "subscription_create";
 
-    // 🔎 Get referral
+    // 🔎 Get referral ------------------------------------------
     const { data: referral } = await supabase
       .from("referrals")
       .select("*")
@@ -331,8 +331,8 @@ export async function POST(req: Request) {
       const rate = isInitial ? 0.15 : 0.10;
       const commission = amount * rate;
 
-      // 🔁 Update referral
-      await supabase
+      // 🔁 Update referral--------------------------------------
+    /*await supabase
         .from("referrals")
         .update({
           total_paid: (referral.total_paid || 0) + amount,
@@ -340,22 +340,52 @@ export async function POST(req: Request) {
             (referral.total_commission || 0) + commission,
           updated_at: new Date().toISOString(),
         })
-        .eq("referred_user_id", userId);
+        .eq("referred_user_id", userId);*/
 
-      // 🔁 Get current affiliate value
+      await supabase                                  //|-----🟡🟡 PATCHED 7/4/26 - REFERRALS UPDATE
+        .from("referrals")
+        .update({
+          total_paid: (referral.total_paid || 0) + amount,
+          total_commission:
+            (referral.total_commission || 0) + commission,
+          stripe_subscription_id: subscriptionId,
+          plan: plan,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("referred_user_id", userId);              //-----|🟡🟡 PATCHED 7/4/26
+
+      // 🔁 Get current affiliate value --------------------------
       const { data: affiliate } = await supabase
         .from("affiliates")
-        .select("total_earned")
+        .select("total_earned, total_referrals")
         .eq("user_id", referral.referrer_user_id)
         .single();
 
-      // 🔁 Update affiliate
-      await supabase
+      // 🔁 Update affiliate -------------------------------------
+
+    /*await supabase
         .from("affiliates")
         .update({
           total_earned: (referral.total_commission || 0) + commission,
         })
-        .eq("user_id", referral.referrer_user_id);
+        .eq("user_id", referral.referrer_user_id);*/
+
+      await supabase                                  //|-----🟡🟡 PATCHED 7/4/26 - UPDATE AFFILIATES
+        .from("affiliates")
+        .update({
+          total_earned: (affiliate?.total_earned || 0) + commission,
+        })
+        .eq("user_id", referral.referrer_user_id);    //-----|🟡🟡 PATCHED 7/4/26
+
+      // 🔁 increment referral count ONLY on first payment -------
+      if (isInitial) {
+        await supabase
+          .from("affiliates")
+          .update({
+            total_referrals: (affiliate?.total_referrals || 0) + 1,
+          })
+          .eq("user_id", referral.referrer_user_id);
+      }
 
       console.log("💰 Affiliate commission recorded", {
         userId,
