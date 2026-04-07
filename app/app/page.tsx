@@ -56,7 +56,8 @@ export default function Home() {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get("ref");
 
-    if (ref) {
+    if (ref && !localStorage.getItem("ref_code")) {    //🟡🟡 PATCHED 7/4/26
+      console.log("✅ REF DETECTED:", ref);           //🟡🟡 PATCHED 7/4/26
       localStorage.setItem("ref_code", ref);
     }                                                 //-----|🟡🟡 6/4/26
 
