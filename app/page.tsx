@@ -20,8 +20,54 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-  // ========== AFFILIATE REF CAPTURE ==========   //|----- 🟡🟡 PATCHED 7/4/26 - AFFILIATE
   useEffect(() => {
+    // 🛑 Ensure runs only in browser
+    if (typeof window === "undefined") return;
+
+    console.log("URL DEBUG:", window.location.href);
+
+    // ========== AFFILIATE REF CAPTURE ==========
+    const params = new URLSearchParams(window.location.search);     //|----- 🟡🟡 PATCHED 7/4/26 - AFFILIATE
+    const ref = params.get("ref");
+
+    if (ref && !localStorage.getItem("ref_code")) {
+      console.log("✅ REF DETECTED:", ref);
+      localStorage.setItem("ref_code", ref);
+    }                                           //-----| 🟡🟡 7/4/26
+
+    // ========== SUPABASE EMAIL LOGIN HANDLER ==========
+    const hash = window.location.hash;                      //|----- 🟡🟡 PATCHED 7/4/26 - LOGIN HANDLER
+
+    if (hash && hash.includes("access_token")) {
+      const params = new URLSearchParams(hash.replace("#", ""));
+
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token");
+
+      if (access_token && refresh_token) {
+        console.log("🔐 AUTH TOKENS DETECTED");
+
+        supabase.auth
+          .setSession({
+            access_token,
+            refresh_token,
+          })
+          .then(({ error }: { error: any }) => {
+            if (error) {
+              console.error("❌ Session set failed:", error);
+            } else {
+              console.log("✅ User auto-logged in");
+
+              window.history.replaceState({}, document.title, "/");
+            }
+          });
+      }
+    }
+
+  }, []);                              //-----| 🟡🟡 7/4/26
+  
+  // ========== AFFILIATE REF CAPTURE ==========   
+/*useEffect(() => {
     console.log("URL DEBUG:", window.location.href);
 
     const params = new URLSearchParams(window.location.search);
@@ -31,9 +77,9 @@ const supabase = createClient(
       console.log("✅ REF DETECTED:", ref);
       localStorage.setItem("ref_code", ref);
     }
-  }, []);                       //-----| 🟡🟡 7/4/26
+  }, []);                       
 
-  // ========== SUPABASE EMAIL LOGIN HANDLER ==========    //|----- 🟡🟡 PATCHED 7/4/26 - LOGIN HANDLER
+  // ========== SUPABASE EMAIL LOGIN HANDLER ==========    
   const hash = window.location.hash;
 
   if (hash && hash.includes("access_token")) {
@@ -61,7 +107,7 @@ const supabase = createClient(
           }
         });
     }
-  }                              //-----| 🟡🟡 7/4/26
+  }*/                              
 
   // ============= MAINPAGE LAYOUT ==============
   return (
