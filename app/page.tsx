@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect } from "react";  // 🟡🟡 PATCHED 7/4/26 - AFFILIATE BUILD-IN FUNCTION
+import { createClient } from "@supabase/supabase-js";  // 🟡🟡 PATCHED 7/4/26 - LOGIN HANDLER
 
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
@@ -13,7 +14,13 @@ import HomeButton from "@/components/HomeButton"
 
 export default function Home() {
 
-  // ========== AFFILIATE REF CAPTURE ==========
+/* ------------------ SUPABASE CLIENT ------------------ */
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+  // ========== AFFILIATE REF CAPTURE ==========   //|----- 🟡🟡 PATCHED 7/4/26 - AFFILIATE
   useEffect(() => {
     console.log("URL DEBUG:", window.location.href);
 
@@ -24,7 +31,37 @@ export default function Home() {
       console.log("✅ REF DETECTED:", ref);
       localStorage.setItem("ref_code", ref);
     }
-  }, []);
+  }, []);                       //-----| 🟡🟡 7/4/26
+
+  // ========== SUPABASE EMAIL LOGIN HANDLER ==========    //|----- 🟡🟡 PATCHED 7/4/26 - LOGIN HANDLER
+  const hash = window.location.hash;
+
+  if (hash && hash.includes("access_token")) {
+    const params = new URLSearchParams(hash.replace("#", ""));
+
+    const access_token = params.get("access_token");
+    const refresh_token = params.get("refresh_token");
+
+    if (access_token && refresh_token) {
+      console.log("🔐 AUTH TOKENS DETECTED");
+
+      supabase.auth
+        .setSession({
+          access_token,
+          refresh_token,
+        })
+        .then(({ error }: { error: any }) => {
+          if (error) {
+            console.error("❌ Session set failed:", error);
+          } else {
+            console.log("✅ User auto-logged in");
+
+            // Clean URL
+            window.history.replaceState({}, document.title, "/");
+          }
+        });
+    }
+  }                              //-----| 🟡🟡 7/4/26
 
   // ============= MAINPAGE LAYOUT ==============
   return (
