@@ -35,6 +35,22 @@ const supabase = createClient(
       localStorage.setItem("ref_code", ref);
     }                                           //-----| 🟡🟡 7/4/26
 
+    // ========== SESSION RECOVERY (STRIPE REDIRECT FIX) ==========   //|----- 🟡🟡 PATCHED 8/4/26 - SESSION RECOVERY
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        console.log("✅ Session restored after redirect");
+
+        // 🔥 FORCE UI SYNC (THIS IS THE MISSING PIECE)
+        supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+
+      } else {
+        console.log("⚠️ No session found");
+      }
+    });                                   //-----| 🟡🟡 8/4/26
+
     // ========== SUPABASE EMAIL LOGIN HANDLER ==========
     const hash = window.location.hash;                      //|----- 🟡🟡 PATCHED 7/4/26 - LOGIN HANDLER
 
