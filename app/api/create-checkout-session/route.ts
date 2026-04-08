@@ -73,7 +73,7 @@ export async function POST(req: Request) {
       ],
 
       success_url:
-        `${process.env.NEXT_PUBLIC_BASE_URL}/?success=true`,
+        `${process.env.NEXT_PUBLIC_BASE_URL}/app?success=true`,      // 🟡🟡 PATCHED 8/4/26 - REDIRECT TO /APP
 
       cancel_url:
         `${process.env.NEXT_PUBLIC_BASE_URL}/pricing?canceled=true`,

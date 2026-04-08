@@ -35,8 +35,8 @@ const supabase = createClient(
       localStorage.setItem("ref_code", ref);
     }                                           //-----| 🟡🟡 7/4/26
 
-    // ========== SESSION RECOVERY (STRIPE REDIRECT FIX) ==========   //|----- 🟡🟡 PATCHED 8/4/26 - SESSION RECOVERY
-    supabase.auth.getSession().then(({ data }) => {
+    // ========== SESSION RECOVERY (STRIPE REDIRECT FIX) ==========  
+  /*supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
         console.log("✅ Session restored after redirect");
 
@@ -49,7 +49,37 @@ const supabase = createClient(
       } else {
         console.log("⚠️ No session found");
       }
-    });                                   //-----| 🟡🟡 8/4/26
+    });*/                                   
+
+    // ========== AUTH STATE SYNC (CRITICAL FIX) ==========    //|----- 🟡🟡 PATCHED 8/4/26 - AUTH STATE SYNC
+    supabase.auth.onAuthStateChange((event, session) => {
+      console.log("🔄 AUTH EVENT:", event);
+
+      if (session) {
+        console.log("✅ Session active");
+
+        // Force UI awareness -------------------------------
+        supabase.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        });
+
+      } else {
+        console.log("⚠️ No session");
+      }
+    });
+
+    // ALSO trigger initial check ----------------------------
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        console.log("✅ Initial session found");
+
+        supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+      }
+    });                           //-----| 🟡🟡 8/4/26
 
     // ========== SUPABASE EMAIL LOGIN HANDLER ==========
     const hash = window.location.hash;                      //|----- 🟡🟡 PATCHED 7/4/26 - LOGIN HANDLER
