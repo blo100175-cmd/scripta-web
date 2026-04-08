@@ -52,7 +52,7 @@ const supabase = createClient(
     });*/                                   
 
     // ========== AUTH STATE SYNC (CRITICAL FIX) ==========    //|----- 🟡🟡 PATCHED 8/4/26 - AUTH STATE SYNC
-    supabase.auth.onAuthStateChange((event, session) => {
+  /*supabase.auth.onAuthStateChange((event, session) => {
       console.log("🔄 AUTH EVENT:", event);
 
       if (session) {
@@ -67,10 +67,19 @@ const supabase = createClient(
       } else {
         console.log("⚠️ No session");
       }
-    });
+    });*/
+
+    // ========== SESSION RECOVERY (SAFE) ==========   //|----- 🟡🟡 PATCHED 8/4/26 - AUTH STATE SYNC
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        console.log("✅ Session exists");
+      } else {
+        console.log("⚠️ No session");
+      }
+    });                                          //-----| 🟡🟡 PATCHED 8/4/26
 
     // ALSO trigger initial check ----------------------------
-    supabase.auth.getSession().then(({ data }) => {
+  /*supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
         console.log("✅ Initial session found");
 
@@ -79,7 +88,7 @@ const supabase = createClient(
           refresh_token: data.session.refresh_token,
         });
       }
-    });                           //-----| 🟡🟡 8/4/26
+    });*/                     
 
     // ========== SUPABASE EMAIL LOGIN HANDLER ==========
     const hash = window.location.hash;                      //|----- 🟡🟡 PATCHED 7/4/26 - LOGIN HANDLER
