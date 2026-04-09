@@ -2,14 +2,20 @@
 
 /* ================= SUPABASE + PDF ================= */
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+
+import { getSupabase } from "@/lib/supabaseClient";      //🟡🟡PATCHED 9/4/26
+/*import { createClient } from "@supabase/supabase-js";*/
+
 import { extractText, getDocumentProxy } from "unpdf";
 
 /* ================= SUPABASE CLIENT ================= */
-const supabase = createClient(
+
+const supabase = getSupabase();         //🟡🟡PATCHED 9/4/26
+
+/*const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+);*/
 
 /* ================= PDF → TEXT ================= */
 async function extractPdfText(file: File): Promise<string> {

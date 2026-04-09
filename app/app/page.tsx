@@ -2,15 +2,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+/*import { createClient } from "@supabase/supabase-js";*/
 import { extractText, getDocumentProxy } from "unpdf";
 import TaglineStrip from "@/components/TaglineStrip";  //🟡🟡PATCHED 16/3/26
 
+import { getSupabase } from "@/lib/supabaseClient";    //🟡🟡PATCHED 8/4/26 - SUPABASE CLIENT SIGN IN
+
 /* ------------------ SUPABASE CLIENT ------------------ */
-const supabase = createClient(
+
+const supabase = getSupabase();        //🟡🟡PATCHED 8/4/26 - SUPABASE CLIENT SIGN IN
+
+/*const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+);*/
 
 /* ------------------ PDF EXTRACTION ------------------ */
 async function extractPdfText(file: File): Promise<string> {
@@ -22,7 +27,8 @@ async function extractPdfText(file: File): Promise<string> {
 
 /* ------------------ RPC SAVE TEXT ------------------ */
 async function saveExtractedText(docKey: string, text: string) {
-  const { error } = await supabase.rpc("save_extracted_text", {
+/*const { error } = await supabase.rpc("save_extracted_text", {*/
+  const { error } = await (supabase as any).rpc("save_extracted_text", {       //🟡🟡PATCHED 8/4/26
     p_doc_key: docKey,
     p_text: text,
   });
@@ -165,7 +171,7 @@ export default function Home() {
 
       setStatus("Registering file...");
 
-      const { data: inserted, error: insertError } = await supabase
+      const { data: inserted, error: insertError } = await (supabase as any)   //🟡🟡PATCHED 8/4/26
         .from("incoming_files")
         .insert({
           user_id: user ? String(user.id) : anonId,

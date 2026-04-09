@@ -2,7 +2,9 @@
 "use client";
 
 import { useEffect } from "react";  // 🟡🟡 PATCHED 7/4/26 - AFFILIATE BUILD-IN FUNCTION
-import { createClient } from "@supabase/supabase-js";  // 🟡🟡 PATCHED 7/4/26 - LOGIN HANDLER
+/*import { createClient } from "@supabase/supabase-js";*/  
+
+import { getSupabase } from "@/lib/supabaseClient";      //🟡🟡PATCHED 8/4/26
 
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
@@ -15,10 +17,13 @@ import HomeButton from "@/components/HomeButton"
 export default function Home() {
 
 /* ------------------ SUPABASE CLIENT ------------------ */
-const supabase = createClient(
+
+const supabase = getSupabase();
+
+/*const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+);*/
 
   useEffect(() => {
     // 🛑 Ensure runs only in browser
@@ -94,10 +99,15 @@ const supabase = createClient(
     const hash = window.location.hash;                      //|----- 🟡🟡 PATCHED 7/4/26 - LOGIN HANDLER
 
     if (hash && hash.includes("access_token")) {
-      const params = new URLSearchParams(hash.replace("#", ""));
-
+      
+    /*const params = new URLSearchParams(hash.replace("#", ""));
       const access_token = params.get("access_token");
-      const refresh_token = params.get("refresh_token");
+      const refresh_token = params.get("refresh_token");*/
+
+      const hashParams = new URLSearchParams(hash.replace("#", ""));     //|-----🟡🟡PATCHED 8/4/26
+      
+      const access_token = hashParams.get("access_token");
+      const refresh_token = hashParams.get("refresh_token");     //-----|🟡🟡PATCHED 8/4/26
 
       if (access_token && refresh_token) {
         console.log("🔐 AUTH TOKENS DETECTED");
@@ -113,7 +123,7 @@ const supabase = createClient(
             } else {
               console.log("✅ User auto-logged in");
 
-              window.history.replaceState({}, document.title, "/");
+              window.history.replaceState({}, document.title, "/app");    //🟡🟡PATCHED 8/4/26
             }
           });
       }

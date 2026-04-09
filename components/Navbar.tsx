@@ -2,13 +2,20 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+
+import { getSupabase } from "@/lib/supabaseClient";         //🟡🟡PATCHED 9/4/26
+/*import { createClient } from "@supabase/supabase-js";*/
+
 import { useRouter } from "next/navigation";
 
-const supabase = createClient(
+
+/* ================= SUPABASE CLIENT ================= */
+const supabase = getSupabase();             //🟡🟡PATCHED 9/4/26
+
+/*const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+);*/
 
 export default function Navbar() {
 
@@ -71,15 +78,21 @@ export default function Navbar() {
 
   },[]);
 
+  /*-------------- LOGOUT FUNCTION ---------------*/
+  async function logout() {                   //|-----🟡🟡 PATCHED 9/4/26
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  }                               //-----|🟡🟡 PATCHED 9/4/26
+
 /*async function logout(){
     await supabase.auth.signOut();
     location.reload();
   }*/
-
-  async function logout(){         //|----🟡🟡 PATCHED 15/3/26
+  
+/*async function logout(){         
     await supabase.auth.signOut();
     router.push("/");
-  }                               //-----|🟡🟡 15/3/26
+  }*/                               
 
   return(
 
