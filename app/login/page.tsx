@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabase } from "@/lib/supabaseClient";           //🟡🟡PATCHED 9/4/26
+/*import { createClient } from "@supabase/supabase-js";*/
 import Link from "next/link";
 import TaglineStrip from "@/components/TaglineStrip";
 
-const supabase = createClient(
+/* ------------------ SUPABASE CLIENT ------------------ */
+const supabase = getSupabase();           //🟡🟡PATCHED 9/4/26 
+/*const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+);*/
 
 export default function LoginPage() {
 
