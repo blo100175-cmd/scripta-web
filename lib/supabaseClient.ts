@@ -1,13 +1,26 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-let supabase: SupabaseClient | null = null;
+declare global {
+  interface Window {
+    __supabase?: SupabaseClient;
+  }
+}
 
 export function getSupabase(): SupabaseClient {
-  if (!supabase) {
-    supabase = createClient(
+  if (typeof window === "undefined") {
+    // SSR fallback (safe)
+    return createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
   }
-  return supabase;
+
+  if (!window.__supabase) {
+    window.__supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+  }
+
+  return window.__supabase;
 }
