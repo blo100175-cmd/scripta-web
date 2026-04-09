@@ -7,14 +7,6 @@ declare global {
 }
 
 export function getSupabase(): SupabaseClient {
-  if (typeof window === "undefined") {
-    // SSR fallback (safe)
-    return createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-  }
-
   if (!window.__supabase) {
     window.__supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

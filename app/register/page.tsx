@@ -8,14 +8,14 @@ import { getSupabase } from "@/lib/supabaseClient";           //🟡🟡PATCHED 
 import Link from "next/link";
 import TaglineStrip from "@/components/TaglineStrip";
 
-/* ------------------ SUPABASE CLIENT ------------------ */
-const supabase = getSupabase();           //🟡🟡PATCHED 9/4/26  
 /*const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );*/
 
 export default function RegisterPage() {
+
+  const supabase = getSupabase();           //🟡🟡PATCHED 10/4/26  
 
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("");

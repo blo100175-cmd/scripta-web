@@ -2,20 +2,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-/*import { createClient } from "@supabase/supabase-js";*/
 import { extractText, getDocumentProxy } from "unpdf";
 import TaglineStrip from "@/components/TaglineStrip";  //🟡🟡PATCHED 16/3/26
-
 import { getSupabase } from "@/lib/supabaseClient";    //🟡🟡PATCHED 8/4/26 - SUPABASE CLIENT SIGN IN
-
-/* ------------------ SUPABASE CLIENT ------------------ */
-
-const supabase = getSupabase();        //🟡🟡PATCHED 8/4/26 - SUPABASE CLIENT SIGN IN
-
-/*const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);*/
 
 /* ------------------ PDF EXTRACTION ------------------ */
 async function extractPdfText(file: File): Promise<string> {
@@ -26,17 +15,30 @@ async function extractPdfText(file: File): Promise<string> {
 }
 
 /* ------------------ RPC SAVE TEXT ------------------ */
-async function saveExtractedText(docKey: string, text: string) {
-/*const { error } = await supabase.rpc("save_extracted_text", {*/
+/*async function saveExtractedText(docKey: string, text: string) {
   const { error } = await (supabase as any).rpc("save_extracted_text", {       //🟡🟡PATCHED 8/4/26
     p_doc_key: docKey,
     p_text: text,
   });
   if (error) throw error;
-}
+}*/
+
+async function saveExtractedText(           //|-----🟡🟡PATCHED 10/4/26
+  supabase: any,
+  docKey: string,
+  text: string
+) {
+  const { error } = await supabase.rpc("save_extracted_text", {
+    p_doc_key: docKey,
+    p_text: text,
+  });
+  if (error) throw error;
+}                           //-----|🟡🟡PATCHED 10/4/26
 
 /* ================== MAIN PAGE ================== */
 export default function Home() {
+
+  const supabase = getSupabase();        //🟡🟡PATCHED 8/4/26 - SUPABASE CLIENT SIGN IN
 
   /* ---------------- AUTH ---------------- */
   const [user, setUser] = useState<any>(null);
@@ -61,8 +63,6 @@ export default function Home() {
     console.log("URL DEBUG:", window.location.href);    //🟡🟡 PATCHED 7/4/26
 
     // ========== AFFILIATE REF CAPTURE ==========               //|-----🟡🟡 PATCHED 6/4/26 - AFFILIATE SYSTEM
-  /*const params = new URLSearchParams(window.location.search);
-    const ref = params.get("ref");*/
 
     const url = window.location.href;                   //|-----🟡🟡 PATCHED 7/4/26
     const refMatch = url.match(/[?&]ref=([^&]+)/);
@@ -84,12 +84,6 @@ export default function Home() {
     setAnonId(storedAnon);
 
     /* ===== AUTH SESSION ===== */
-
-  /*supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
-      setAuthLoading(false);
-    });*/
-
     supabase.auth.getSession().then(async ({ data }) => {   //|----- 🟡🟡 PATCHED 6/4/26 - AFFILIATE REGISTER
       const currentUser = data.session?.user ?? null;
 
@@ -221,7 +215,8 @@ export default function Home() {
 
         setStatus("Saving extracted text...");
 
-        await saveExtractedText(resolvedDocKey, text);
+      /*await saveExtractedText(resolvedDocKey, text);*/
+        await saveExtractedText(supabase, resolvedDocKey, text);   //🟡🟡PTCHED 10/4/26
 
       }
 

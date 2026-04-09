@@ -5,12 +5,7 @@ import { useState, useEffect } from "react";
 
 import { getSupabase } from "@/lib/supabaseClient";      //🟡🟡PATCHED 9/4/26
 /*import { createClient } from "@supabase/supabase-js";*/
-
 import { extractText, getDocumentProxy } from "unpdf";
-
-/* ================= SUPABASE CLIENT ================= */
-
-const supabase = getSupabase();         //🟡🟡PATCHED 9/4/26
 
 /*const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,17 +21,32 @@ async function extractPdfText(file: File): Promise<string> {
 }
 
 /* ================= RPC SAVE TEXT ================= */
-async function saveExtractedText(docKey: string, text: string) {
+/*async function saveExtractedText(docKey: string, text: string) {
   const { error } = await supabase.rpc("save_extracted_text", {
     p_doc_key: docKey,
     p_text: text,
   });
 
   if (error) throw error;
-}
+}*/
+
+  async function saveExtractedText(           //|-----🟡🟡PATCHED 10/4/26
+  supabase: any,
+  docKey: string,
+  text: string
+) {
+  const { error } = await supabase.rpc("save_extracted_text", {
+    p_doc_key: docKey,
+    p_text: text,
+  });
+
+  if (error) throw error;
+}                                           //-----|🟡🟡PATCHED 10/4/26
 
 /* ================= COMPONENT ================= */
 export default function AppStrip() {
+
+  const supabase = getSupabase();         //🟡🟡PATCHED 10/4/26
 
   /* ===== AUTH SESSION (same as working file) ===== */
   const [user, setUser] = useState<any>(null);
@@ -149,7 +159,9 @@ export default function AppStrip() {
         setExtractedText(text);
 
         setStatus("Saving extracted text...");
-        await saveExtractedText(resolvedDocKey, text);
+      /*await saveExtractedText(resolvedDocKey, text);*/
+
+        await saveExtractedText(supabase, resolvedDocKey, text);      //🟡🟡PATCHED 10/4/26
       }
 
       /* --- PIPELINE CONTINUES --- */

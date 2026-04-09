@@ -2,15 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-
 import { getSupabase } from "@/lib/supabaseClient";         //🟡🟡PATCHED 9/4/26
 /*import { createClient } from "@supabase/supabase-js";*/
-
 import { useRouter } from "next/navigation";
-
-
-/* ================= SUPABASE CLIENT ================= */
-const supabase = getSupabase();             //🟡🟡PATCHED 9/4/26
 
 /*const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,7 +13,9 @@ const supabase = getSupabase();             //🟡🟡PATCHED 9/4/26
 
 export default function Navbar() {
 
-  const router = useRouter();    //🟡🟡 PATCHED 15/3/26
+  const supabase = getSupabase();        //🟡🟡PATCHED 10/4/26
+
+  const router = useRouter();            //🟡🟡 PATCHED 15/3/26
 
   const [user,setUser] = useState<any>(null);
   const [tier,setTier] = useState<string>("free");

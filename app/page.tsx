@@ -2,8 +2,6 @@
 "use client";
 
 import { useEffect } from "react";  // 🟡🟡 PATCHED 7/4/26 - AFFILIATE BUILD-IN FUNCTION
-/*import { createClient } from "@supabase/supabase-js";*/  
-
 import { getSupabase } from "@/lib/supabaseClient";      //🟡🟡PATCHED 8/4/26
 
 import Hero from "@/components/Hero";
@@ -11,19 +9,11 @@ import Features from "@/components/Features";
 import WhyScripta from "@/components/WhyScripta";
 import ContactSection from "@/components/ContactSection";
 import TaglineStrip from "@/components/TaglineStrip";
-/*import ScrollHomeButton from "@/components/ScrollHomeButton";*/
 import HomeButton from "@/components/HomeButton"
 
 export default function Home() {
 
-/* ------------------ SUPABASE CLIENT ------------------ */
-
-const supabase = getSupabase();
-
-/*const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);*/
+  const supabase = getSupabase();          //🟡🟡PATCHED 10/4/26
 
   useEffect(() => {
     // 🛑 Ensure runs only in browser

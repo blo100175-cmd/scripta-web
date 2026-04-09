@@ -5,9 +5,6 @@ import { getSupabase } from "@/lib/supabaseClient";           //🟡🟡PATCHED 
 /*import { createClient } from "@supabase/supabase-js";*/
 import TaglineStrip from "@/components/TaglineStrip";
 
-
-/* ------------------ SUPABASE CLIENT ------------------ */
-const supabase = getSupabase();           //🟡🟡PATCHED 9/4/26 
 /*const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -25,6 +22,8 @@ type PricingProfile = {
 };
 
 export default function PricingPage() {
+
+  const supabase = getSupabase();           //🟡🟡PATCHED 10/4/26 
 
   const [profile, setProfile] = useState<PricingProfile | null>(null);
   const [user, setUser] = useState<any>(null);

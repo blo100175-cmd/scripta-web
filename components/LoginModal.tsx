@@ -4,15 +4,15 @@ import { useState } from "react";
 /*import { createClient } from "@supabase/supabase-js";*/
 import { getSupabase } from "@/lib/supabaseClient"          //🟡🟡PATCHED 9/4/26
 
-/* ================= SUPABASE CLIENT ================= */
-const supabase = getSupabase();             //🟡🟡PATCHED 9/4/26
-
 /*const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );*/
 
 export default function LoginModal({ onClose }: { onClose: () => void }) {
+  
+  const supabase = getSupabase();             //🟡🟡PATCHED 10/4/26
+
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("");
 
