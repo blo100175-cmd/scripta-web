@@ -13,113 +13,77 @@ import HomeButton from "@/components/HomeButton"
 
 export default function Home() {
 
-  const supabase = getSupabase();          //🟡🟡PATCHED 10/4/26
+  const supabase = getSupabase();         //🟡🟡PATCHED 10/4/26
 
   useEffect(() => {
-    // 🛑 Ensure runs only in browser
-    if (typeof window === "undefined") return;
 
-    console.log("URL DEBUG:", window.location.href);
+    const init = async () => {
 
-    // ========== AFFILIATE REF CAPTURE ==========
-    const params = new URLSearchParams(window.location.search);     //|----- 🟡🟡 PATCHED 7/4/26 - AFFILIATE
-    const ref = params.get("ref");
+      if (typeof window === "undefined") return;
 
-    if (ref && !localStorage.getItem("ref_code")) {
-      console.log("✅ REF DETECTED:", ref);
-      localStorage.setItem("ref_code", ref);
-    }                                           //-----| 🟡🟡 7/4/26
+      console.log("URL DEBUG:", window.location.href);
 
-    // ========== SESSION RECOVERY (STRIPE REDIRECT FIX) ==========  
-  /*supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        console.log("✅ Session restored after redirect");
+      /* ================= AFFILIATE REF ================= */
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get("ref");
 
-        // 🔥 FORCE UI SYNC (THIS IS THE MISSING PIECE)
-        supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-        });
-
-      } else {
-        console.log("⚠️ No session found");
+      if (ref && !localStorage.getItem("ref_code")) {
+        console.log("✅ REF DETECTED:", ref);
+        localStorage.setItem("ref_code", ref);
       }
-    });*/                                   
 
-    // ========== AUTH STATE SYNC (CRITICAL FIX) ==========    //|----- 🟡🟡 PATCHED 8/4/26 - AUTH STATE SYNC
-  /*supabase.auth.onAuthStateChange((event, session) => {
-      console.log("🔄 AUTH EVENT:", event);
+      /* ================= AUTH HANDLER ================= */
+      const hash = window.location.hash;
 
-      if (session) {
-        console.log("✅ Session active");
+      if (hash && hash.includes("access_token")) {
 
-        // Force UI awareness -------------------------------
-        supabase.auth.setSession({
-          access_token: session.access_token,
-          refresh_token: session.refresh_token,
-        });
+        const hashParams = new URLSearchParams(hash.replace("#", ""));
+        const access_token = hashParams.get("access_token");
+        const refresh_token = hashParams.get("refresh_token");
 
-      } else {
-        console.log("⚠️ No session");
-      }
-    });*/
+        if (access_token && refresh_token) {
 
-    // ========== SESSION RECOVERY (SAFE) ==========   //|----- 🟡🟡 PATCHED 8/4/26 - AUTH STATE SYNC
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        console.log("✅ Session exists");
-      } else {
-        console.log("⚠️ No session");
-      }
-    });                                          //-----| 🟡🟡 PATCHED 8/4/26
+          // 🔥 CRITICAL: check BEFORE setting session
+          const { data } = await supabase.auth.getSession();
 
-    // ALSO trigger initial check ----------------------------
-  /*supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        console.log("✅ Initial session found");
+          if (!data.session) {
+            console.log("🔐 AUTH TOKENS DETECTED");
 
-        supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-        });
-      }
-    });*/                     
+            const { error } = await supabase.auth.setSession({
+              access_token,
+              refresh_token,
+            });
 
-    // ========== SUPABASE EMAIL LOGIN HANDLER ==========
-    const hash = window.location.hash;                      //|----- 🟡🟡 PATCHED 7/4/26 - LOGIN HANDLER
-
-    if (hash && hash.includes("access_token")) {
-      
-    /*const params = new URLSearchParams(hash.replace("#", ""));
-      const access_token = params.get("access_token");
-      const refresh_token = params.get("refresh_token");*/
-
-      const hashParams = new URLSearchParams(hash.replace("#", ""));     //|-----🟡🟡PATCHED 8/4/26
-      
-      const access_token = hashParams.get("access_token");
-      const refresh_token = hashParams.get("refresh_token");     //-----|🟡🟡PATCHED 8/4/26
-
-      if (access_token && refresh_token) {
-        console.log("🔐 AUTH TOKENS DETECTED");
-
-        supabase.auth
-          .setSession({
-            access_token,
-            refresh_token,
-          })
-          .then(({ error }: { error: any }) => {
             if (error) {
               console.error("❌ Session set failed:", error);
             } else {
               console.log("✅ User auto-logged in");
 
-              window.history.replaceState({}, document.title, "/app");    //🟡🟡PATCHED 8/4/26
+              // clean URL + move to app
+              window.history.replaceState({}, document.title, "/app");
             }
-          });
+          } else {
+            console.log("⚠️ Session already exists — skip setSession");
+          }
+        }
       }
-    }
 
-  }, []);                              //-----| 🟡🟡 7/4/26
+      /* ================= SAFE SESSION CHECK ================= */
+      setTimeout(async () => {
+        const { data } = await supabase.auth.getSession();
+
+        if (data.session) {
+          console.log("✅ Session exists");
+        } else {
+          console.log("⚠️ No session");
+        }
+      }, 500);
+
+    };
+
+    init();
+
+  }, []);
   
   // ========== AFFILIATE REF CAPTURE ==========   
 /*useEffect(() => {

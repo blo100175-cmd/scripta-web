@@ -1,18 +1,24 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-declare global {
-  interface Window {
-    __supabase?: SupabaseClient;
-  }
-}
+let browserClient: SupabaseClient | null = null;
 
 export function getSupabase(): SupabaseClient {
-  if (!window.__supabase) {
-    window.__supabase = createClient(
+
+  // ✅ SERVER: return a safe dummy client (never used for auth)
+  if (typeof window === "undefined") {
+    return createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
   }
 
-  return window.__supabase;
+  // ✅ CLIENT: true singleton
+  if (!browserClient) {
+    browserClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+  }
+
+  return browserClient;
 }

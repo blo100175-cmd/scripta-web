@@ -52,7 +52,7 @@ export default function AppStrip() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+  supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null);
     });
 
