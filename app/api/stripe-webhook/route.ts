@@ -182,12 +182,54 @@ export async function POST(req: Request) {
       })
       .eq("user_id", userId);
 
-    await supabase.from("profiles")
+  /*await supabase.from("profiles")
       .update({
         subscription_status: subscription.status,
         updated_at: now,
       })
-      .eq("user_id", userId);
+      .eq("user_id", userId);*/
+    
+    //===== GRACE PERIOE ENGINE ===============      //|-----🟡🟡PATCHED AFFILIATE 120526
+    const invalidStatuses = [
+      "past_due",
+      "unpaid",
+      "canceled",
+      "incomplete_expired"
+    ];
+
+    const isInvalid = invalidStatuses.includes(
+      subscription.status
+    );
+
+    const graceUntil = new Date(
+      Date.now() + 7 * 24 * 60 * 60 * 1000
+    ).toISOString();
+
+    if (isInvalid) {
+      await supabase.from("profiles")
+        .update({
+          subscription_status: subscription.status,
+          grace_period_until: graceUntil,
+          updated_at: now,
+        })
+        .eq("user_id", userId);
+
+      console.log("🟡 Grace period activated", {
+        userId,
+        status: subscription.status,
+        graceUntil,
+      });
+
+    } else {
+
+      await supabase.from("profiles")
+        .update({
+          subscription_status: subscription.status,
+          grace_period_until: null,
+          updated_at: now,
+        })
+        .eq("user_id", userId);     
+    }                                             //-----|🟡🟡PATCHED 120526
 
     console.log("🟡 Subscription updated (cancel_at_period_end synced)");
   }
