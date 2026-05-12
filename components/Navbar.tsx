@@ -114,6 +114,7 @@ export default function Navbar() {
               {health} {user.email} . {tier}
             </span>
 
+            <a href="/affiliate">affiliate</a>
             <Link href="/app">app</Link>
             <a href="/#features">features</a>
             <a href="/#why-us">why scripta</a>
@@ -127,6 +128,7 @@ export default function Navbar() {
 
           <>
             <Link href="/login">login</Link>
+            <a href="/affiliate">affiliate</a>
             <Link href="/app">app</Link>
             <a href="/#features">features</a>
             <a href="/#why-us">why scripta</a>
