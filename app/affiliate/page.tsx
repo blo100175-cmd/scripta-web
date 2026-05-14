@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabaseClient";
 import Link from "next/link";
+import { resolveEffectiveTier } from "@/lib/resolveEffectiveTier";
 
 /*type Affiliate = {
   referral_code: string;
@@ -44,6 +45,13 @@ export default function AffiliatePage() {
   const [affiliate, setAffiliate] = useState<Affiliate | null>(null);
   const [tier, setTier] = useState<string>("free");               //|-----🟡🟡PATCHED AFFILIATE 120526
   const [status, setStatus] = useState<string>("inactive");       //|-----🟡🟡PATCHED AFFILIATE 120526
+  
+  const [effectiveTier, setEffectiveTier] =                       
+    useState<string>("free");                                     //🟡🟡PATCHED 120526
+
+  const [effectiveStatus, setEffectiveStatus] =
+    useState<string>("expired");                                  //🟡🟡PATCHED 120526
+  
   const [referrals, setReferrals] = useState<Referral[]>([]);
 
   useEffect(() => {
@@ -60,25 +68,53 @@ export default function AffiliatePage() {
         return;
       }
 
-      // LOADD PROFILE DATA ===========================                       //|-----🟡🟡PATCHED AFFILIATE 120526
+      // LOADD PROFILE DATA ===========================       //|-----🟡🟡PATCHED AFFILIATE 120526
       const { data: profile } = await supabase
         .from("profiles")
-        .select("subscription_tier, subscription_status")
+      /*.select("subscription_tier, subscription_status")*/
+        .select(`                                 
+          subscription_tier,
+          subscription_status,
+          grace_period_until
+        `)
         .eq("user_id", user.id)
         .maybeSingle();                           //🟡🟡PATCHED AFFILIATE 120526
 
-      if (profile) {
-        setTier(profile.subscription_tier || "free");
-        setStatus(profile.subscription_status || "inactive");
-      }                                           //-----|🟡🟡PATCHED 120526
+    if (profile) {
+      /*setTier(profile.subscription_tier || "free");*/ 
+        const { data: subscription } = await supabase
+          .from("subscriptions")
+          .select("current_period_end")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        const resolved = resolveEffectiveTier({
+          subscriptionTier:
+            profile.subscription_tier || "free",
+          subscriptionStatus:
+            profile.subscription_status || "expired",
+          currentPeriodEnd:
+            subscription?.current_period_end || null,
+          gracePeriodUntil:
+            profile.grace_period_until || null,
+        });
+
+        setTier(resolved.effectiveTier);
+        setStatus(resolved.effectiveStatus);
+
+        setEffectiveTier(resolved.effectiveTier);
+        setEffectiveStatus(
+          resolved.effectiveStatus
+        );
+      }                                          
 
       // 📊 Get affiliate info =======================
       const { data: affiliateData } = await supabase
         .from("affiliates")
       /*.select("referral_code, total_earned, total_referrals")*/
-        .select("id, referral_code, total_earned, total_referrals")
+        .select("id, referral_code, total_earned, total_referrals")   //🟡🟡PATCHED AFFILIATE 130526
         .eq("user_id", user.id)
-        .maybeSingle();;                           //🟡🟡PATCHED AFFILIATE 120526
+        .maybeSingle();                           //🟡🟡PATCHED AFFILIATE 120526
 
       if (affiliateData) {
         setAffiliate(affiliateData);
@@ -135,9 +171,9 @@ export default function AffiliatePage() {
     return <div className="p-6">Loading affiliate dashboard...</div>;
   }
 
-  //=========== CSS ==================================
+  //=========== JSX ==================================
   //GUEST GATE =======================================            //|-----🟡🟡PATCHED AFFILIATE 120526
-  if (!affiliate && tier === "free") {
+  if (!affiliate && effectiveTier === "free") {
     return (
       <div className="p-6 max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">
@@ -160,10 +196,19 @@ export default function AffiliatePage() {
   }                                         //-----|🟡🟡PATCHED 120526
 
   //FREE/LITE UPGRADE GATE ===============  //|-----🟡🟡PATCHED AFFILIATE 120526
-  if (
+/*if (
     !affiliate &&
-    (tier === "lite" || status !== "active")
-  ) {
+    (effectiveTier === "lite" || effectiveStatus === "expired")
+  ) {*/
+  if (                                      //|-----🟡🟡PATCHED AFFILIATE 140526
+    !affiliate &&
+    (
+      effectiveTier === "free" ||
+      effectiveTier === "lite" ||
+      effectiveStatus === "expired"
+    )
+  ) {                                       //|-----🟡🟡PATCHED 140526
+
     return (
       <div className="p-6 max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">
@@ -188,8 +233,8 @@ export default function AffiliatePage() {
   //ACTIVATION PAGE ======================  //|-----🟡🟡PATCHED AFFILIATE
   if (
     !affiliate &&
-    (tier === "student" || tier === "pro") &&
-    status === "active"
+    (effectiveTier === "student" || effectiveTier === "pro") &&
+    effectiveStatus === "active"
   ) {
     return (
       <div className="p-6 max-w-2xl mx-auto">

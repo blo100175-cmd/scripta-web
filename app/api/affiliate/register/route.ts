@@ -1,3 +1,4 @@
+//SCRIPTA V1.1.140526 - HARDENING
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
@@ -21,6 +22,19 @@ export async function POST(req: Request) {
     console.log("📥 INPUT:", { referral_code, user_id });
 
     /* ---------------- VALIDATION ---------------- */
+    const { data: profile } = await supabase      //|-----🟡🟡PATCHED 140526 - HARDENING
+      .from("profiles")
+      .select("user_id")
+      .eq("user_id", user_id)
+      .maybeSingle();
+
+    if (!profile) {
+      return NextResponse.json(
+        { error: "Invalid user" },
+        { status: 403 }
+      );
+    }                                 //-----|🟡🟡PATCHED 140526
+
     if (!referral_code || !user_id) {
       return NextResponse.json(
         { error: "Invalid input" },

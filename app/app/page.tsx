@@ -1,4 +1,6 @@
 //SCRIPTA V1.1.060426 - AFFILIATE BUILD-IN 
+//SCRIPTA V1.1.140526.1 - BUG FIXING - DOWNLOAD LINK BUTTON | PREVENT DUPLICATION
+//SCRIPTA V1.1.140526.2 - BUG FIXING - REMOVE STALE RECOVERY STATE AFTER MANUAL RESET
 "use client";
 
 import { useState, useEffect } from "react";
@@ -55,6 +57,8 @@ export default function Home() {
   >(null);
 
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [activeDocKey, setActiveDocKey] = useState<string | null>(null);   //🟡🟡PATCHED 140526 - BUG FIXING - DOWNLOAD LINK BUTTON
+  const [isRecovering, setIsRecovering] = useState(false);          //🟡🟡PATCHED 140526 - PREVENT DUPLICATION
   const [isUploading, setIsUploading] = useState(false);
 
   /* ---------------- AUTH SESSION ---------------- */
@@ -82,6 +86,55 @@ export default function Home() {
     }
 
     setAnonId(storedAnon);
+    const savedDocKey =                       //|-----🟡🟡PATCHED 140526 - DOWNLOAD LINK BUTTON
+      localStorage.getItem("active_doc_key");
+
+  /*if (savedDocKey) {
+
+      setActiveDocKey(savedDocKey);
+
+      setStatus("Recovering active document...");
+
+      pollDocumentStatus(savedDocKey)
+        .catch(console.error);
+
+    }*/                                         
+  /*if (savedDocKey) {*/
+    if (savedDocKey && !isRecovering) {
+      setIsRecovering(true);
+      setActiveDocKey(savedDocKey);
+      setStatus("Recovering active document...");
+
+      supabase
+        .from("documents")
+        .select("status, pdf_url")
+        .eq("doc_key", savedDocKey)
+        .maybeSingle()
+        .then(({ data }) => {
+
+          if (
+            data?.status === "COMPLETED" &&
+            data?.pdf_url
+          ) {
+
+            setDocStatus("COMPLETED");
+
+            setPdfUrl(data.pdf_url);
+
+            localStorage.removeItem("active_doc_key");
+            setIsRecovering(false);           //🟡🟡PATCHED 140526 - PREVENT DUPLICATION
+            return;
+          }
+
+        /*pollDocumentStatus(savedDocKey)
+            .catch(console.error);*/
+          pollDocumentStatus(savedDocKey)   
+            .catch(console.error)
+            .finally(() => {                 //🟡🟡PATCHED 140526 - PREVENT DUPLICATION
+              setIsRecovering(false);        //🟡🟡PATCHED 140526 - PREVENT DUPLICATION
+            });  
+        });
+    }                                          //-----|🟡🟡PATCHED 140526
 
     /* ===== AUTH SESSION ===== */
     supabase.auth.getSession().then(async ({ data }) => {   //|----- 🟡🟡 PATCHED 6/4/26 - AFFILIATE REGISTER
@@ -126,7 +179,9 @@ export default function Home() {
       setDocStatus(null);
       setPdfUrl(null);
       setStatus("");
+      setActiveDocKey(null);          //🟡🟡PATCHED 140526 - REMOVE STALE RECOVERY STATE
 
+      localStorage.removeItem("active_doc_key");    //🟡🟡PATCHED 140526 - REMOVE STALE RECOVERY STATE
     });
 
     return () => subscription.unsubscribe();
@@ -195,6 +250,11 @@ export default function Home() {
 
         if (data?.status === "registered" && data?.doc_key) {
           resolvedDocKey = data.doc_key;
+          setActiveDocKey(resolvedDocKey);          //|-----🟡🟡PATCHED 140526 - BUG FIXING - DOWNLOAD LINK BUTTON
+          localStorage.setItem(
+            "active_doc_key",
+            resolvedDocKey as string
+          );                                        //-----|🟡🟡PATCHED 140526
           break;
         }
 
@@ -228,8 +288,13 @@ export default function Home() {
 
     } catch (err: any) {
 
-      console.error(err);
-      setStatus(`❌ ${err.message || "Unexpected error"}`);
+    /*console.error(err);
+      setStatus(`❌ ${err.message || "Unexpected error"}`);*/
+
+      console.error(err);                       //|-----🟡🟡PATCHED 140526 - DOWNLOAD LINK BUTTON
+      localStorage.removeItem("active_doc_key");
+      setActiveDocKey(null);
+      setStatus(`❌ ${err.message || "Unexpected error"}`);       //-----|🟡🟡PATCHED 140526
 
     } finally {
 
@@ -288,6 +353,9 @@ export default function Home() {
       if (row.status === "COMPLETED") {
         setDocStatus("COMPLETED");
         setPdfUrl(row.pdf_url);
+
+        localStorage.removeItem("active_doc_key");          //🟡🟡PATCHED 140526 - DOWNLOAD LINK BUTTON
+        
         setIsUploading(false);
         return;
       }

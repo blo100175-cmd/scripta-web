@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabaseClient";         //🟡🟡PATCHED 9/4/26
 /*import { createClient } from "@supabase/supabase-js";*/
 import { useRouter } from "next/navigation";
+import { resolveEffectiveTier } from "@/lib/resolveEffectiveTier";
 
 /*const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,16 +32,50 @@ export default function Navbar() {
 
       setUser(user);
 
-      const {data:profile} = await supabase
+    /*const {data:profile} = await supabase
         .from("profiles")
         .select("subscription_tier, subscription_status")
         .eq("user_id",user.id)
-        .maybeSingle();
+        .maybeSingle();*/
 
-      if(profile){
+      const { data: profile } = await supabase      //|-----🟡🟡 PATCHED 120526
+        .from("profiles")
+        .select(`
+          subscription_tier,
+          subscription_status,
+          grace_period_until
+        `)
+        .eq("user_id", user.id)
+        .maybeSingle();                             //-----|🟡🟡 PATCHED 120526
+
+    /*if(profile){
         setTier(profile.subscription_tier);
-      }
+      }*/
+      
+      if (profile) {                                //|-----🟡🟡 PATCHED 120526
 
+        const { data: subscription } = await supabase
+          .from("subscriptions")
+          .select("current_period_end")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        const resolved = resolveEffectiveTier({
+          subscriptionTier: profile.subscription_tier,
+          subscriptionStatus: profile.subscription_status,
+          currentPeriodEnd:
+            subscription?.current_period_end || null,
+          gracePeriodUntil:
+            profile.grace_period_until || null,
+        });
+
+        setTier(resolved.effectiveTier);
+
+        if (resolved.effectiveStatus === "expired") {
+          setHealth("🔴");
+        }
+      }                                             //-----|🟡🟡 PATCHED 120526
+      
       const monthKey = new Date().toISOString().slice(0,7);
 
       const {data:usage} = await supabase
@@ -50,10 +85,11 @@ export default function Navbar() {
         .eq("month_key",monthKey)
         .maybeSingle();
 
-      if(profile?.subscription_status === "expired"){
+    /*if(profile?.subscription_status === "expired"){
         setHealth("🔴");
-      }
-      else if(usage && usage.page_limit){
+      }*/
+
+      if (usage && usage.page_limit) {
 
         const ratio = usage.total_pages / usage.page_limit;
 
@@ -66,12 +102,9 @@ export default function Navbar() {
         else{
           setHealth("🟢");
         }
-
       }
     }
-
     loadUser();
-
   },[]);
 
   /*-------------- LOGOUT FUNCTION ---------------*/
@@ -92,6 +125,9 @@ export default function Navbar() {
 
   return(
 
+/* =========================
+     PAGE UI (JSX)
+========================= */    
     <nav className="navbar">
 
       {/* LEFT */}

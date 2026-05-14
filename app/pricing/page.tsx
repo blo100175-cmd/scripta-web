@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabaseClient";           //🟡🟡PATCHED 9/4/26
 /*import { createClient } from "@supabase/supabase-js";*/
 import TaglineStrip from "@/components/TaglineStrip";
+import { resolveEffectiveTier } from "@/lib/resolveEffectiveTier";     //🟡🟡PATCHED 120526
 
 /*const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -245,17 +246,37 @@ export default function PricingPage() {
     ? new Date(profile.current_period_end).toLocaleDateString()
     : "N/A";
 
-  const isActive =
+  const resolvedAccess = resolveEffectiveTier({          //|-----🟡🟡PATCHED 120526
+    subscriptionTier:
+      profile?.subscription_tier || "free",
+    subscriptionStatus:
+      profile?.subscription_status || "expired",
+    currentPeriodEnd:
+      profile?.current_period_end || null,
+    gracePeriodUntil:
+      (profile as any)?.grace_period_until || null,
+  });                                                    //-----|🟡🟡PATCHED 120526
+
+  const effectiveTier =
+    resolvedAccess.effectiveTier;                        //🟡🟡PATCHED 120526
+
+/*const isActive =
     profile?.subscription_status === "active" &&
     (!profile?.current_period_end ||
-      new Date(profile.current_period_end) > new Date());
+      new Date(profile.current_period_end) > new Date());*/
+
+  const isActive =                                       //|-----🟡🟡PATCHED 120526
+    resolvedAccess.effectiveStatus === "active" ||
+    resolvedAccess.effectiveStatus === "grace";          //-----|🟡🟡PATCHED 120526
 
   const displayStatus =
     profile?.cancel_at_period_end && isActive
       ? "Active (Cancels at period end)"
       : profile?.subscription_status; 
 
-  const isExpired = profile?.subscription_status === "expired";   //🟡🟡 PATCHED 15/3/26
+/*const isExpired = profile?.subscription_status === "expired";*/   
+  const isExpired =
+    resolvedAccess.effectiveStatus === "expired";        //🟡🟡PATCHED 120526
 
 
   /* =========================
@@ -282,7 +303,7 @@ export default function PricingPage() {
           <section className="plan-status">
             <h2>Your Current Plan</h2>
             <p>
-              <strong>Tier:</strong> {profile.subscription_tier}
+              <strong>Tier:</strong> {resolvedAccess.effectiveTier}
             </p>
             <p>
               <strong>Status:</strong> {displayStatus}
@@ -321,13 +342,13 @@ export default function PricingPage() {
                 }
 
                 /* expired paid user → switch to free */
-                if (isExpired && profile?.subscription_tier !== "free") {
+                if (isExpired && effectiveTier !== "free") {
                   switchToFree();
                   return;
                 }
 
                 /* already active free */
-                if (profile?.subscription_tier === "free" && !isExpired) {
+                if (effectiveTier === "free" && !isExpired) {
                   return;
                 }
 
@@ -335,15 +356,15 @@ export default function PricingPage() {
                 window.location.href = "/app";
 
               }}
-              disabled={processing || (profile?.subscription_tier === "free" && !isExpired)}
+              disabled={processing || (effectiveTier === "free" && !isExpired)}
             >
-              {!user
+              {!user                                     
                 ? "Register Free"
-                : profile?.subscription_tier === "free" && !isExpired
+                : effectiveTier === "free" && !isExpired
                   ? "Current Plan"
                   : isExpired
                     ? "Switch to Free"
-                    : "Free Plan"}
+                    : "Free Plan"}                        
             </button>
           </div>
 
@@ -358,9 +379,9 @@ export default function PricingPage() {
             </ul>
             <button
               onClick={() => upgrade("lite")}
-              disabled={processing || (profile?.subscription_tier === "lite" && !isExpired)}
+              disabled={processing || (effectiveTier === "lite" && !isExpired)}
             >
-              {profile?.subscription_tier === "lite" && !isExpired
+              {effectiveTier === "lite" && !isExpired     
                 ? "Current Plan"
                 : processing
                   ? "Redirecting..."
@@ -379,9 +400,9 @@ export default function PricingPage() {
             </ul>
             <button
               onClick={() => upgrade("student")}
-              disabled={processing || (profile?.subscription_tier === "student" && !isExpired)}
+              disabled={processing || (effectiveTier === "student" && !isExpired)}
             >
-              {profile?.subscription_tier === "student" && !isExpired
+              {effectiveTier === "student" && !isExpired      
                 ? "Current Plan"
                 : processing
                   ? "Redirecting..."
@@ -400,9 +421,9 @@ export default function PricingPage() {
             </ul>
             <button
               onClick={() => upgrade("pro")}
-              disabled={processing || (profile?.subscription_tier === "pro" && !isExpired)}
+              disabled={processing || (effectiveTier === "pro" && !isExpired)}
             >
-              {profile?.subscription_tier === "pro" && !isExpired
+              {effectiveTier === "pro" && !isExpired     
                 ? "Current Plan"
                 : processing
                   ? "Redirecting..."

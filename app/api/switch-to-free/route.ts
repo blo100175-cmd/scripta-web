@@ -1,3 +1,4 @@
+//SCRIPTA V1.1.140526 - HARDENING
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -32,6 +33,19 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    const { data: profile } = await supabase      //|-----🟡PATCHED 140526 - HARDENING
+      .from("profiles")
+      .select("user_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!profile) {
+      return NextResponse.json(
+        { error: "Invalid user" },
+        { status: 403 }
+      );
+    }                             //-----|🟡🟡PATCHED 140526
 
     const now = new Date().toISOString();
 
