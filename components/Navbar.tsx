@@ -1,7 +1,8 @@
+//SCRIPTA V1.1.150526 - DB-UI SYNCHRONIZATION
 "use client";
-
 import Link from "next/link";
-import { useEffect, useState } from "react";
+/*import { useEffect, useState } from "react";*/
+import { useEffect, useState, useCallback } from "react";
 import { getSupabase } from "@/lib/supabaseClient";         //🟡🟡PATCHED 9/4/26
 /*import { createClient } from "@supabase/supabase-js";*/
 import { useRouter } from "next/navigation";
@@ -22,9 +23,10 @@ export default function Navbar() {
   const [tier,setTier] = useState<string>("free");
   const [health,setHealth] = useState<string>("🟢");
 
-  useEffect(()=>{
+/*useEffect(()=>{
+    async function loadUser(){*/
 
-    async function loadUser(){
+  const loadUser = useCallback(async () => {            //🟡🟡PATCHED 150526 - DB-UI SYNCHRONIZATION
 
       const {data:{user}} = await supabase.auth.getUser();
 
@@ -103,9 +105,14 @@ export default function Navbar() {
           setHealth("🟢");
         }
       }
-    }
+  /*}
     loadUser();
-  },[]);
+  },[]);*/
+  }, [supabase]);                   //|-----🟡🟡PATCHED 150526 - DB-UI SYNCHRONIZATION
+
+  useEffect(() => {
+    loadUser();
+  }, [loadUser]);                   //-----|🟡🟡PATCHED 150526
 
   /*-------------- LOGOUT FUNCTION ---------------*/
   async function logout() {                   //|-----🟡🟡 PATCHED 9/4/26
