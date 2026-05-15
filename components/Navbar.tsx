@@ -92,7 +92,7 @@ export default function Navbar() {
         }
       }
 
-  }, [supabase]);                   //|-----🟡🟡PATCHED 150526 - DB-UI SYNCHRONIZATION
+  }, [supabase, authUser, loading]);       //|-----🟡🟡PATCHED 150526 - DB-UI SYNCHRONIZATION
 
   useEffect(() => {
     loadUser();
