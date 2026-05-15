@@ -1,23 +1,19 @@
-//SCRIPTA V1.1.150526 - DB-UI SYNCHRONIZATION
+//SCRIPTA V1.1.150526 - DB-UI SYNCHRONIZATION | GLOBAL AUTH PROVIDER
 "use client";
 import Link from "next/link";
 /*import { useEffect, useState } from "react";*/
 import { useEffect, useState, useCallback } from "react";
 import { getSupabase } from "@/lib/supabaseClient";         //🟡🟡PATCHED 9/4/26
+import { useAuth } from "@/components/AuthProvider";        //🟡🟡PATCHED 150526 - GLOBAL AUTH PROVIDER
 /*import { createClient } from "@supabase/supabase-js";*/
 import { useRouter } from "next/navigation";
 import { resolveEffectiveTier } from "@/lib/resolveEffectiveTier";
 
-/*const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);*/
-
 export default function Navbar() {
 
-  const supabase = getSupabase();        //🟡🟡PATCHED 10/4/26
-
-  const router = useRouter();            //🟡🟡 PATCHED 15/3/26
+  const supabase = getSupabase();                   //🟡🟡PATCHED 10/4/26
+  const {user: authUser,loading,} = useAuth();      //🟡🟡PATCHED 150526 -  GLOBAL AUTH PROVIDER
+  const router = useRouter();                       //🟡🟡 PATCHED 15/3/26
 
   const [user,setUser] = useState<any>(null);
   const [tier,setTier] = useState<string>("free");
@@ -26,19 +22,17 @@ export default function Navbar() {
 /*useEffect(()=>{
     async function loadUser(){*/
 
-  const loadUser = useCallback(async () => {            //🟡🟡PATCHED 150526 - DB-UI SYNCHRONIZATION
+  const loadUser = useCallback(async () => {        //🟡🟡PATCHED 150526 - DB-UI SYNCHRONIZATION
 
-      const {data:{user}} = await supabase.auth.getUser();
+    /*const {data:{user}} = await supabase.auth.getUser();*/
+
+      const user = authUser;                        //🟡🟡PATCHED 150526 - GLOBAL AUTH PROVIDER
+      
+      if (loading) return;                          //🟡🟡PATCHED 150526 - GLOBAL AUTH PROVIDER
 
       if(!user) return;
 
       setUser(user);
-
-    /*const {data:profile} = await supabase
-        .from("profiles")
-        .select("subscription_tier, subscription_status")
-        .eq("user_id",user.id)
-        .maybeSingle();*/
 
       const { data: profile } = await supabase      //|-----🟡🟡 PATCHED 120526
         .from("profiles")
@@ -49,10 +43,6 @@ export default function Navbar() {
         `)
         .eq("user_id", user.id)
         .maybeSingle();                             //-----|🟡🟡 PATCHED 120526
-
-    /*if(profile){
-        setTier(profile.subscription_tier);
-      }*/
       
       if (profile) {                                //|-----🟡🟡 PATCHED 120526
 
@@ -87,10 +77,6 @@ export default function Navbar() {
         .eq("month_key",monthKey)
         .maybeSingle();
 
-    /*if(profile?.subscription_status === "expired"){
-        setHealth("🔴");
-      }*/
-
       if (usage && usage.page_limit) {
 
         const ratio = usage.total_pages / usage.page_limit;
@@ -105,9 +91,7 @@ export default function Navbar() {
           setHealth("🟢");
         }
       }
-  /*}
-    loadUser();
-  },[]);*/
+
   }, [supabase]);                   //|-----🟡🟡PATCHED 150526 - DB-UI SYNCHRONIZATION
 
   useEffect(() => {
@@ -118,17 +102,7 @@ export default function Navbar() {
   async function logout() {                   //|-----🟡🟡 PATCHED 9/4/26
     await supabase.auth.signOut();
     window.location.href = "/";
-  }                               //-----|🟡🟡 PATCHED 9/4/26
-
-/*async function logout(){
-    await supabase.auth.signOut();
-    location.reload();
-  }*/
-  
-/*async function logout(){         
-    await supabase.auth.signOut();
-    router.push("/");
-  }*/                               
+  }                               //-----|🟡🟡 PATCHED 9/4/26                              
 
   return(
 
