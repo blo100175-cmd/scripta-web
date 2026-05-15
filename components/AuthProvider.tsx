@@ -1,13 +1,7 @@
 //SCRIPTA V1.150526 - GLOBAL AUTH PROVIDER
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
-
+import {createContext,useContext,useEffect,useState,} from "react";
 import { getSupabase } from "@/lib/supabaseClient";
 
 type AuthContextType = {
@@ -43,8 +37,14 @@ export function AuthProvider({
 
       if (!mounted) return;
 
-      setUser(user);
-      setLoading(false);
+    /*setUser(user);
+      setLoading(false);*/
+
+      setUser(user ?? null);            //|-----🟡🟡PATCHED 150526 - GLOBAL AUTH PROVIDER
+
+      setTimeout(() => {
+        setLoading(false);
+      }, 150);                          //|-----🟡🟡PATCHED 150526
     }
 
     initialize();
