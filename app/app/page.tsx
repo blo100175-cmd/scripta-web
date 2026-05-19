@@ -177,9 +177,9 @@ export default function Home() {
 
       if (event === "USER_UPDATED") return;                       //🟡🟡PATCHED 190526
 
-      if (event === "SIGNED_IN") return;                          //🟡🟡PATCHED 190526
+    //if (event === "SIGNED_IN") return;                          //🟡🟡PATCHED 190526
 
-      if (event === "SIGNED_OUT") {
+      if (event === "SIGNED_OUT") {                               //🟡🟡PATCHED 190526
 
       // reset pipeline state on auth change
       setFile(null);
@@ -190,7 +190,7 @@ export default function Home() {
 
       localStorage.removeItem("active_doc_key");
 
-    }});
+    }});                                                          //🟡🟡PATCHED 190526
 
   //return () => subscription.unsubscribe();
     return () => {
