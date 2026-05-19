@@ -216,6 +216,12 @@ export default function Home() {
   async function uploadFile() {
 
     if (!file || isUploading) return;
+    
+    if (!authUser && !anonId) {                                    //|-----🟡🟡PATCHED 190526
+      setStatus("Initializing session...");
+      return;
+    }                                                              //-----|🟡🟡PATCHED 190526
+
     setIsUploading(true);
 
     try {
@@ -235,7 +241,8 @@ export default function Home() {
       const { data: inserted, error: insertError } = await (supabase as any)   //🟡🟡PATCHED 8/4/26
         .from("incoming_files")
         .insert({
-          user_id: authUser ? String(user.id) : anonId,
+        /*user_id: authUser ? String(user.id) : anonId,*/
+          user_id: authUser ? String(authUser.id) : anonId,
           file_name: file.name,
           bucket: "incoming",
           storage_path: filePath,
