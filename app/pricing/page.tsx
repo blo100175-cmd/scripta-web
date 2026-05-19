@@ -1,10 +1,12 @@
+//SCRIPTA V1.1.140526 - MIGRATION FULL-STATE CENTRALIZATION
+//SCRIPTA V1.1.160526 - MIGRATION FULL-STATE CENTRALIZATION - CLEANUP resolveEffectiveTier
 "use client";
-
 import { useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabaseClient";           //🟡🟡PATCHED 9/4/26
+import { useAuth } from "@/components/AuthProvider";          //🟡🟡PATCHED 150526
 /*import { createClient } from "@supabase/supabase-js";*/
 import TaglineStrip from "@/components/TaglineStrip";
-import { resolveEffectiveTier } from "@/lib/resolveEffectiveTier";     //🟡🟡PATCHED 120526
+/*import { resolveEffectiveTier } from "@/lib/resolveEffectiveTier";*/    //🟡🟡PATCHED 160526
 
 /*const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,32 +28,36 @@ export default function PricingPage() {
 
   const supabase = getSupabase();           //🟡🟡PATCHED 10/4/26 
 
-  const [profile, setProfile] = useState<PricingProfile | null>(null);
-  const [user, setUser] = useState<any>(null);
+/*const [profile, setProfile] = useState<PricingProfile | null>(null);*/
+/*const [user, setUser] = useState<any>(null);*/
 
-  const [loading, setLoading] = useState(true);
+  const {user,loading,profile,tier,usage,effectiveTier,effectiveStatus,} = useAuth();        //🟡🟡PATCHED 150526
+
+/*const [loading, setLoading] = useState(true);*/
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+
 
   /* =========================
      LOAD PROFILE (OPTIONAL)
   ========================= */
 
-  useEffect(() => {
+/*useEffect(() => {
 
-    async function loadProfile() {
+  /*async function loadProfile() {
 
       try {
 
-        const { data: { user } } = await supabase.auth.getUser();
-        setUser(user);
+      /*const { data: { user } } = await supabase.auth.getUser();*/
+      /*setUser(user);*/
 
-        if (!user) {
+      /*if (!user) {
           setLoading(false);
           return;
-        }
+        }*/
 
-        const res = await fetch("/api/get-profile", {
+      /*const res = await fetch("/api/get-profile", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId: user.id }),
@@ -60,23 +66,23 @@ export default function PricingPage() {
         if (!res.ok) throw new Error("Failed to load profile");
 
         const data = await res.json();
-        setProfile(data);
+        setProfile(data);*/
 
-      } catch (err: any) {
+    /*} catch (err: any) {
 
         setError(err.message);
 
       } finally {
 
-        setLoading(false);
+      setLoading(false);
 
       }
 
-    }
+    }*/
 
-    loadProfile();
+  /*loadProfile();
 
-  }, []);
+  }, []);*/
 
 
   /* =========================
@@ -246,7 +252,7 @@ export default function PricingPage() {
     ? new Date(profile.current_period_end).toLocaleDateString()
     : "N/A";
 
-  const resolvedAccess = resolveEffectiveTier({          //|-----🟡🟡PATCHED 120526
+/*const resolvedAccess = resolveEffectiveTier({          //|-----🟡🟡PATCHED 160526
     subscriptionTier:
       profile?.subscription_tier || "free",
     subscriptionStatus:
@@ -255,7 +261,7 @@ export default function PricingPage() {
       profile?.current_period_end || null,
     gracePeriodUntil:
       (profile as any)?.grace_period_until || null,
-  });                                                    //-----|🟡🟡PATCHED 120526
+  });/                                                    //-----|🟡🟡PATCHED 160526
 
   const effectiveTier =
     resolvedAccess.effectiveTier;                        //🟡🟡PATCHED 120526
@@ -265,9 +271,13 @@ export default function PricingPage() {
     (!profile?.current_period_end ||
       new Date(profile.current_period_end) > new Date());*/
 
-  const isActive =                                       //|-----🟡🟡PATCHED 120526
+/*const isActive =                                       //|-----🟡🟡PATCHED 120526
     resolvedAccess.effectiveStatus === "active" ||
-    resolvedAccess.effectiveStatus === "grace";          //-----|🟡🟡PATCHED 120526
+    resolvedAccess.effectiveStatus === "grace"; */         //-----|🟡🟡PATCHED 120526
+
+    const isActive =                                       //|-----🟡🟡PATCHED 160526
+    effectiveTier === "active" ||
+    effectiveStatus === "grace";                           //-----|🟡🟡PATCHED 160526
 
   const displayStatus =
     profile?.cancel_at_period_end && isActive
@@ -276,8 +286,8 @@ export default function PricingPage() {
 
 /*const isExpired = profile?.subscription_status === "expired";*/   
   const isExpired =
-    resolvedAccess.effectiveStatus === "expired";        //🟡🟡PATCHED 120526
-
+  /*resolvedAccess.effectiveStatus === "expired";*/        //🟡🟡PATCHED 120526
+    effectiveStatus === "expired";                         //🟡🟡PATCHED 160526
 
   /* =========================
      PAGE UI (JSX)
@@ -303,7 +313,7 @@ export default function PricingPage() {
           <section className="plan-status">
             <h2>Your Current Plan</h2>
             <p>
-              <strong>Tier:</strong> {resolvedAccess.effectiveTier}
+              <strong>Tier:</strong> {effectiveTier}
             </p>
             <p>
               <strong>Status:</strong> {displayStatus}

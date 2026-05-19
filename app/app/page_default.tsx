@@ -69,17 +69,18 @@ export default function Home() {
   /* ---------------- AUTH SESSION ---------------- */
   useEffect(() => {
 
-  //console.log("URL DEBUG:", window.location.href);
+    console.log("URL DEBUG:", window.location.href);    //🟡🟡 PATCHED 7/4/26
 
-    // ========== AFFILIATE REF CAPTURE ==========
-    const url = window.location.href;
+    // ========== AFFILIATE REF CAPTURE ==========               //|-----🟡🟡 PATCHED 6/4/26 - AFFILIATE SYSTEM
+
+    const url = window.location.href;                   //|-----🟡🟡 PATCHED 7/4/26
     const refMatch = url.match(/[?&]ref=([^&]+)/);
-    const ref = refMatch ? refMatch[1] : null;
+    const ref = refMatch ? refMatch[1] : null;          //-----|🟡🟡 PATCHED 7/4/26
 
-    if (ref && !localStorage.getItem("ref_code")) {
-      console.log("✅ REF DETECTED:", ref);
+    if (ref && !localStorage.getItem("ref_code")) {    //🟡🟡 PATCHED 7/4/26
+      console.log("✅ REF DETECTED:", ref);           //🟡🟡 PATCHED 7/4/26
       localStorage.setItem("ref_code", ref);
-    }
+    }                                                 //-----|🟡🟡 6/4/26
 
     /* ===== ANON USER ID ===== */
     let storedAnon = localStorage.getItem("anon_user_id");
@@ -90,12 +91,21 @@ export default function Home() {
     }
 
     setAnonId(storedAnon);
-
-    const savedDocKey =
+    const savedDocKey =                       //|-----🟡🟡PATCHED 140526 - DOWNLOAD LINK BUTTON
       localStorage.getItem("active_doc_key");
 
-    if (savedDocKey && !isRecovering) {
+  /*if (savedDocKey) {
 
+      setActiveDocKey(savedDocKey);
+
+      setStatus("Recovering active document...");
+
+      pollDocumentStatus(savedDocKey)
+        .catch(console.error);
+
+    }*/                                         
+  /*if (savedDocKey) {*/
+    if (savedDocKey && !isRecovering) {
       setIsRecovering(true);
       setActiveDocKey(savedDocKey);
       setStatus("Recovering active document...");
@@ -113,92 +123,81 @@ export default function Home() {
           ) {
 
             setDocStatus("COMPLETED");
+
             setPdfUrl(data.pdf_url);
 
             localStorage.removeItem("active_doc_key");
-
-            setIsRecovering(false);
+            setIsRecovering(false);           //🟡🟡PATCHED 140526 - PREVENT DUPLICATION
             return;
           }
 
-          pollDocumentStatus(savedDocKey)
+        /*pollDocumentStatus(savedDocKey)
+            .catch(console.error);*/
+          pollDocumentStatus(savedDocKey)   
             .catch(console.error)
-            .finally(() => {
-              setIsRecovering(false);
+            .finally(() => {                                          //🟡🟡PATCHED 140526 - PREVENT DUPLICATION
+              setIsRecovering(false);                                 //🟡🟡PATCHED 140526 - PREVENT DUPLICATION
+            });  
+        });
+    }                                                                 //-----|🟡🟡PATCHED 140526
+
+    /* ===== AUTH SESSION ===== */
+    supabase.auth.getSession().then(async ({ data }) => {             //|----- 🟡🟡 PATCHED 6/4/26 - AFFILIATE REGISTER
+    //const currentUser = data.session?.user ?? null;
+    //const currentUser = authUser;                                   //🟡🟡PATCHED 190526
+
+    //setUser(currentUser);
+    /*setAuthLoading(false);*/
+
+      // ========== AFFILIATE REGISTER ==========
+    //if (currentUser) {
+      if (authUser) {                                                 //🟡🟡PATCHED 190526
+        const refCode = localStorage.getItem("ref_code");
+
+        if (refCode) {
+          try {
+            await fetch("/api/affiliate/register", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                referral_code: refCode,
+              //user_id: currentUser.id,
+                user_id: authUser.id,                                 //🟡🟡PATCHED 190526
+              }),
             });
 
-        });
-    }
-
-    // ========== AFFILIATE REGISTER ==========
-    const runAffiliateRegister = async () => {
-
-      if (authUser) {
-
-        const refCode = localStorage.getItem("ref_code");
-        
-        if (!refCode) return;                                     //🟡🟡PATCHED 190526
-
-        try {
-
-          await fetch("/api/affiliate/register", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              referral_code: refCode,
-              user_id: authUser.id,
-            }),
-          });
-
-          localStorage.removeItem("ref_code");
-
-        } catch (e) {
-
-          console.error("Affiliate register failed", e);
-
+            localStorage.removeItem("ref_code");
+          } catch (e) {
+            console.error("Affiliate register failed", e);
+          }
         }
       }
-    };
+  });                   //-----| 🟡🟡 PATCHED 6/4/26
 
-    if (authUser) {                                               //|-----🟡🟡PATCHED 190526
-      runAffiliateRegister();
-    }                                                             //-----|🟡🟡PATCHED 190526
-
-    // ===== PASSIVE AUTH CLEANUP LISTENER =====
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {              //🟡🟡PATCHED 190526
+  //} = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event) => {               //🟡🟡PATCHED 190526
 
-      if (event === "INITIAL_SESSION") return;                    //🟡🟡PATCHED 190526
-      
-      if (event === "TOKEN_REFRESHED") return;                    //🟡🟡PATCHED 190526
 
-      if (event === "USER_UPDATED") return;                       //🟡🟡PATCHED 190526
 
-      if (event === "SIGNED_IN") return;                          //🟡🟡PATCHED 190526
-
-      if (event === "SIGNED_OUT") {
+    //setUser(session?.user ?? null);
 
       // reset pipeline state on auth change
       setFile(null);
       setDocStatus(null);
       setPdfUrl(null);
       setStatus("");
-      setActiveDocKey(null);
+      setActiveDocKey(null);                                        //🟡🟡PATCHED 140526 - REMOVE STALE RECOVERY STATE
 
-      localStorage.removeItem("active_doc_key");
+      localStorage.removeItem("active_doc_key");                    //🟡🟡PATCHED 140526 - REMOVE STALE RECOVERY STATE
+    });
 
-    }});
+    return () => subscription.unsubscribe();
 
-  //return () => subscription.unsubscribe();
-    return () => {
-      subscription.unsubscribe();
-    };                                                            //🟡🟡PATCHED 190526
-
-//}, [authUser, isRecovering]);
-    }, [authUser]);                                               //🟡🟡PATCHED 190526
+  }, []);
 
   /* ---------------- FILE HANDLERS ---------------- */
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {

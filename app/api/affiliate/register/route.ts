@@ -1,4 +1,5 @@
 //SCRIPTA V1.1.140526 - HARDENING
+//SCRIPTA V1.1.170526 - FULL-STATE CENTRALIZATION - CLEANUP + LIGHT HARDENING
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
@@ -19,10 +20,40 @@ export async function POST(req: Request) {
     const referral_code = body?.referral_code;
     const user_id = body?.user_id;
 
+    if (                                          //|-----🟡🟡PATCHED 170526
+      typeof referral_code !== "string" ||
+      typeof user_id !== "string"
+    ) {
+      return NextResponse.json(
+        { error: "Invalid input format" },
+        { status: 400 }
+      );
+    }                                             //-----|🟡🟡PATCHED 170526  
+    
+    if (                                          //|-----🟡🟡PATCHED 170526
+      !referral_code.trim() ||
+      !user_id.trim()
+    ) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }                                             //-----|🟡🟡PATCHED 170526
+
+    if (                                          //|-----🟡🟡PATCHED 170526
+      referral_code.length > 100 ||
+      user_id.length > 100
+    ) {
+      return NextResponse.json(
+        { error: "Input too long" },
+        { status: 400 }
+      );
+    }                                             //-----|🟡🟡PATCHED 170526  
+
     console.log("📥 INPUT:", { referral_code, user_id });
 
     /* ---------------- VALIDATION ---------------- */
-    const { data: profile } = await supabase      //|-----🟡🟡PATCHED 140526 - HARDENING
+    const { data: profile } = await supabase      //|-----🟡🟡PATCHED 140526
       .from("profiles")
       .select("user_id")
       .eq("user_id", user_id)
@@ -33,7 +64,7 @@ export async function POST(req: Request) {
         { error: "Invalid user" },
         { status: 403 }
       );
-    }                                 //-----|🟡🟡PATCHED 140526
+    }                                             //-----|🟡🟡PATCHED 140526
 
     if (!referral_code || !user_id) {
       return NextResponse.json(

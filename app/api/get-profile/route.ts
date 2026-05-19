@@ -1,3 +1,4 @@
+//SCRIPTA V1.1.170526 - FULL-STATE CENTRALIZATION - CLEANUP + MILD HARDENING
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -25,6 +26,27 @@ export async function POST(req: Request) {
     const body = await req.json();
     const userId = body?.userId;
 
+    if (typeof userId !== "string") {               //|-----🟡🟡PATCHED 170526
+      return NextResponse.json(
+        { error: "Invalid userId format" },
+        { status: 400 }
+      );
+    }
+
+    if (!userId.trim()) {
+      return NextResponse.json(
+        { error: "Missing userId" },
+        { status: 400 }
+      );
+    }
+
+    if (userId.length > 100) {
+      return NextResponse.json(
+        { error: "userId too long" },
+        { status: 400 }
+      );
+    }                                               //-----|🟡🟡PATCHED 170526
+
     if (!userId) {
       return NextResponse.json(
         { error: "Missing userId" },
@@ -36,8 +58,13 @@ export async function POST(req: Request) {
        1️⃣ Fetch profile
     ========================= */
     const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("*")
+      .from("profiles")                             //|-----🟡🟡PATCHED 170526
+      .select(`                                     
+        user_id,
+        subscription_tier,
+        subscription_status,
+        grace_period_until
+      `)                                            //-----|🟡🟡PATCHED 170526
       .eq("user_id", userId)
       .single();
 

@@ -1,4 +1,5 @@
 //SCRIPTA V1.1.140526 - HARDENING
+//SCRIPTA V1.1.180526 - VALIDATION CONSISTENCY
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -26,6 +27,27 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const userId = body.userId;
+
+    if (typeof userId !== "string") {             //|-----🟡🟡PATCHED 180526
+      return NextResponse.json(
+        { error: "Invalid userId format" },
+        { status: 400 }
+      );
+    }
+
+    if (!userId.trim()) {
+      return NextResponse.json(
+        { error: "Missing userId" },
+        { status: 400 }
+      );
+    }
+
+    if (userId.length > 100) {
+      return NextResponse.json(
+        { error: "Invalid userId length" },
+        { status: 400 }
+      );
+    }                                             //-----|🟡🟡PATCHED 180526
 
     if (!userId) {
       return NextResponse.json(

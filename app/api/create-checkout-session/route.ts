@@ -1,4 +1,5 @@
 //SCRIPTA V1.1.140526 - BUG FIXING - SECURITY GAP
+//SCRIPTA V1.1.180526 - FULL-STATE CENTRLIZATION - CLEANUP 
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";     //🟡🟡PATCHED 140526 - SECURITY GAP PATCH
@@ -30,6 +31,41 @@ export async function POST(req: Request) {
   try {
 
     const { userId, plan } = await req.json();
+
+    if (                                    //|-----🟡🟡PATCHED 180526
+      typeof plan !== "string" ||
+      (userId &&
+       typeof userId !== "string")
+    ) {
+      return NextResponse.json(
+        { error: "Invalid request format" },
+        { status: 400 }
+      );
+    }                                       //-----|🟡🟡PATCHED 180526
+
+    if (!plan.trim()) {
+      return NextResponse.json(
+        { error: "Missing plan" },
+        { status: 400 }
+      );
+    }
+
+    if (plan.length > 50) {                 //|-----🟡🟡PATCHED 180526
+      return NextResponse.json(
+        { error: "Invalid plan length" },
+        { status: 400 }
+      );
+    }                                       //-----|🟡🟡PATCHED 180526
+
+    if (                                    //|-----🟡🟡PATCHED 180526
+      userId &&
+      userId.length > 100
+    ) {
+      return NextResponse.json(
+        { error: "Invalid userId length" },
+        { status: 400 }
+      );
+    }                                       //-----|🟡🟡PATCHED 180526
 
     const stripe = getStripe();         //🟡🟡 PATCHED 30/3/26
     const supabase = getSupabase();     //🟡🟡PATCHED 140526 - SECURITY GAP PATCH
@@ -74,6 +110,19 @@ export async function POST(req: Request) {
       pro: process.env.STRIPE_PRO_PRICE_ID!
 
     };
+
+    const allowedPlans = [                      //|-----🟡🟡PATCHED 180526
+      "lite",
+      "student",
+      "pro",
+    ];                                          
+
+    if (!allowedPlans.includes(plan)) {
+      return NextResponse.json(
+        { error: "Invalid plan selected" },
+        { status: 400 }
+      );
+    }                                           //-----|🟡🟡PATCHED 180526
 
     const priceId = priceMap[plan];
 

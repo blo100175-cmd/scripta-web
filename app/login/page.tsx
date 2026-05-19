@@ -1,3 +1,5 @@
+//SCRIPTA V1.1.150526 - BUG FIXING - DB LIMIT TRIGGERED
+//SCRIPTA V1.1.160526 - FULL-STATE CENTRALIZATION - CLEANUP
 "use client";
 
 import { useState } from "react";
@@ -17,11 +19,16 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("");
+  const [submitting, setSubmitting] = useState(false);        //🟡🟡PATCHED 160526
 
   async function handleLogin() {
 
+    if (submitting) return;                 //🟡🟡PATCHED 160526
+    setSubmitting(true);                    //🟡🟡PATCHED 160526
+
     if (!email) {
       setStatus("Please enter your email.");
+      setSubmitting(false);                 //🟡🟡PATCHED 160526
       return;
     }
 
@@ -39,9 +46,10 @@ export default function LoginPage() {
       setStatus("🔐 Login link sent. Please check your email.");
       setEmail("");
     }
-
+    setSubmitting(false);                   //🟡🟡PATCHED 160526
   }
 
+  // JSX =================================================
   return (
     <>
       <main className="auth-page">
@@ -59,9 +67,12 @@ export default function LoginPage() {
           />
           <button
             onClick={handleLogin}
+            disabled={submitting}             //🟡🟡PATCHED 160526
             className="auth-button"
           >
-            Send Login Link
+            {submitting                       //🟡🟡PATCHED 160526
+              ? "Sending..."
+              : "Send Login Link"}
           </button>
           {status && (
             <p className="auth-status">

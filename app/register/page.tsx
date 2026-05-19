@@ -1,3 +1,4 @@
+//SCRIPTA V1.1.170526 - FULL-STATE CENTRALIZATION - CLEANUP + CONSISTENCY ENFORCEMENT
 "use client";
 
 import { useState } from "react";
@@ -19,11 +20,15 @@ export default function RegisterPage() {
 
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("");
+  const [submitting, setSubmitting] = useState(false);      //🟡🟡PATCHED 170526
 
   async function handleRegister() {
+    if (submitting) return;                                 //🟡🟡PATCHED 170526
+    setSubmitting(true);                                    //🟡🟡PATCHED 170526
 
     if (!email) {
       setStatus("Please enter your email.");
+      setSubmitting(false);                                 //🟡🟡PATCHED 170526
       return;
     }
 
@@ -32,7 +37,7 @@ export default function RegisterPage() {
       options: {
         shouldCreateUser: true,
       /*emailRedirectTo: window.location.origin + "/app",*/
-        emailRedirectTo: `${window.location.origin}/app`,      //🟡🟡 PATCHED     
+        emailRedirectTo: `${window.location.origin}/app`,   //🟡🟡 PATCHED     
       },
     });
 
@@ -42,6 +47,7 @@ export default function RegisterPage() {
       setStatus("📧 Registration link sent. Please check your email.");
       setEmail("");
     }
+    setSubmitting(false);                                   //🟡🟡PATCHED 170526
 
   }
 
@@ -72,8 +78,11 @@ export default function RegisterPage() {
           <button
             onClick={handleRegister}
             className="auth-button"
+            disabled={submitting}                           //🟡🟡PATCHED 170526
           >
-            Create Account
+            {submitting                                     //🟡🟡PATCHED 170526
+              ? "Creating..."
+              : "Create Account"}
           </button>
 
           {status && (

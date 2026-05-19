@@ -1,3 +1,4 @@
+//STRIPE V1.1.180526 - FULL-STATE CENTRALIZATION - CLEANUP
 import Stripe from "stripe";
 import { headers } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
@@ -242,6 +243,8 @@ export async function POST(req: Request) {
 
     console.log("🔥 INVOICE PAID TRIGGERED");
 
+    const now = new Date().toISOString();         //🟡🟡PATCHED 180526
+
     const invoice = event.data.object as Stripe.Invoice;
 
     // 🔎 Extract subscription ID safely (v20 structure)
@@ -292,7 +295,7 @@ export async function POST(req: Request) {
     }                   //-----| 🟡🟡 PATCHED 6/4/26
 
     // ✅ Update subscriptions table
-  /*await supabase.from("subscriptions")
+    /*await supabase.from("subscriptions")
       .update({
         status: subscription.status,
         current_period_end: new Date(
@@ -311,7 +314,8 @@ export async function POST(req: Request) {
           current_period_end: new Date(
             billingPeriodEnd * 1000
           ).toISOString(),
-          updated_at: new Date().toISOString(),
+        /*updated_at: new Date().toISOString(),*/
+          updated_at: now,                          //🟡🟡PATCHED 180526
         }, {
           onConflict: "user_id"
         });                                       //-----|🟡🟡
@@ -321,12 +325,13 @@ export async function POST(req: Request) {
       .update({
         subscription_status: subscription.status,
         subscription_tier: plan,
-        updated_at: new Date().toISOString(),
+      /*updated_at: new Date().toISOString(),*/
+        updated_at: now,                            //🟡🟡PATCHED 180526
       })
       .eq("user_id", userId);
 
     // ✅ Sync usage tier alignment
-  /*await supabase.from("user_usage")
+    /*await supabase.from("user_usage")
       .update({
         tier: plan,
         updated_at: new Date().toISOString(),
@@ -334,7 +339,7 @@ export async function POST(req: Request) {
       .eq("user_id", userId)
       .eq("month_key", getCurrentMonthKey());*/
     
-  /*const quotaMap: Record<string, number> = {      
+    /*const quotaMap: Record<string, number> = {      
       free: 30,
       lite: 100,
       student: 200,
@@ -348,7 +353,8 @@ export async function POST(req: Request) {
         tier: plan,
       /*page_limit: quotaMap[plan],*/
         page_limit: quotaMap[plan as keyof typeof quotaMap],   //🟡🟡 PATCHED 15/3/26
-        updated_at: new Date().toISOString()
+      /*updated_at: new Date().toISOString(),*/
+        updated_at: now,                            //🟡🟡PATCHED 180526
       }, {
         onConflict: "user_id,month_key"
       });                                       //-----|🟡🟡 15/3/26
@@ -375,16 +381,6 @@ export async function POST(req: Request) {
       const commission = amount * rate;
 
       // 🔁 Update referral--------------------------------------
-    /*await supabase
-        .from("referrals")
-        .update({
-          total_paid: (referral.total_paid || 0) + amount,
-          total_commission:
-            (referral.total_commission || 0) + commission,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("referred_user_id", userId);*/
-
       await supabase                                  //|-----🟡🟡 PATCHED 7/4/26 - REFERRALS UPDATE
         .from("referrals")
         .update({
@@ -393,7 +389,8 @@ export async function POST(req: Request) {
             (referral.total_commission || 0) + commission,
           stripe_subscription_id: subscriptionId,
           plan: plan,
-          updated_at: new Date().toISOString(),
+        /*updated_at: new Date().toISOString(),*/
+        updated_at: now,                            //🟡🟡PATCHED 180526
         })
         .eq("referred_user_id", userId);              //-----|🟡🟡 PATCHED 7/4/26
 
@@ -404,15 +401,7 @@ export async function POST(req: Request) {
         .eq("user_id", referral.referrer_user_id)
         .single();
 
-      // 🔁 Update affiliate -------------------------------------
-
-    /*await supabase
-        .from("affiliates")
-        .update({
-          total_earned: (referral.total_commission || 0) + commission,
-        })
-        .eq("user_id", referral.referrer_user_id);*/
-
+      // 🔁 Update affiliate ------------------------------------
       await supabase                                  //|-----🟡🟡 PATCHED 7/4/26 - UPDATE AFFILIATES
         .from("affiliates")
         .update({
@@ -464,14 +453,6 @@ export async function POST(req: Request) {
         updated_at: new Date().toISOString(),
       })
       .eq("user_id", userId);
-
-  /*await supabase.from("user_usage")
-      .update({
-        tier: "free",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId)
-      .eq("month_key", getCurrentMonthKey());*/
     
     await supabase.from("user_usage")           //|-----🟡🟡 PATCHED 15/3/26
       .upsert({

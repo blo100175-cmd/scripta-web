@@ -1,9 +1,10 @@
+//SCRIPTA V1.1.160526 - FULL-STATE CENTRALIZATION MIGRATION - CLEANUP
 "use client";
-
 import { useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabaseClient";
 import Link from "next/link";
-import { resolveEffectiveTier } from "@/lib/resolveEffectiveTier";
+/*import { resolveEffectiveTier } from "@/lib/resolveEffectiveTier";*/
+import { useAuth } from "@/components/AuthProvider";        //🟡🟡PATCHED 160526
 
 /*type Affiliate = {
   referral_code: string;
@@ -41,16 +42,17 @@ function generateSAA() {
 }                                   //-----|🟡🟡PATCHED 120526
 
 export default function AffiliatePage() {
-  const [loading, setLoading] = useState(true);
+  const {user,loading,profile,tier,usage,effectiveTier,effectiveStatus,} = useAuth();
+/*const [loading, setLoading] = useState(true);*/
   const [affiliate, setAffiliate] = useState<Affiliate | null>(null);
-  const [tier, setTier] = useState<string>("free");               //|-----🟡🟡PATCHED AFFILIATE 120526
-  const [status, setStatus] = useState<string>("inactive");       //|-----🟡🟡PATCHED AFFILIATE 120526
+/*const [tier, setTier] = useState<string>("free");*/              //|-----🟡🟡PATCHED 160526
+/*const [status, setStatus] = useState<string>("inactive");*/      //|-----🟡🟡PATCHED 160526
   
-  const [effectiveTier, setEffectiveTier] =                       
-    useState<string>("free");                                     //🟡🟡PATCHED 120526
+/*const [effectiveTier, setEffectiveTier] =                       
+    useState<string>("free");*/                                    //🟡🟡PATCHED 160526
 
-  const [effectiveStatus, setEffectiveStatus] =
-    useState<string>("expired");                                  //🟡🟡PATCHED 120526
+/*const [effectiveStatus, setEffectiveStatus] =
+    useState<string>("expired");*/                                 //🟡🟡PATCHED 160526
   
   const [referrals, setReferrals] = useState<Referral[]>([]);
 
@@ -58,31 +60,35 @@ export default function AffiliatePage() {
     async function loadData() {
       const supabase = getSupabase();
 
-      // 🔐 Get current user
-      const {
+      // 🔐 GET CURRENT USER =========================                                      
+    /*const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await supabase.auth.getUser();*/
 
-      if (!user) {
-        setLoading(false);
+    /*if (loading) {                                              //🟡🟡PATCHED 160526
         return;
       }
 
-      // LOADD PROFILE DATA ===========================       //|-----🟡🟡PATCHED AFFILIATE 120526
-      const { data: profile } = await supabase
+    /*if (!user) {
+        setLoading(false);
+        return;
+      }*/
+
+      // LOADD PROFILE DATA ===========================           //|-----🟡🟡PATCHED 160526
+    /*const { data: profile } = await supabase
         .from("profiles")
       /*.select("subscription_tier, subscription_status")*/
-        .select(`                                 
+      /*.select(`                                 
           subscription_tier,
           subscription_status,
           grace_period_until
         `)
         .eq("user_id", user.id)
-        .maybeSingle();                           //🟡🟡PATCHED AFFILIATE 120526
+        .maybeSingle();*/                                         //-----|🟡🟡PATCHED 160526
 
-    if (profile) {
+    /*if (profile) {                                      //|-----🟡🟡PATCHED 160526
       /*setTier(profile.subscription_tier || "free");*/ 
-        const { data: subscription } = await supabase
+      /*const { data: subscription } = await supabase
           .from("subscriptions")
           .select("current_period_end")
           .eq("user_id", user.id)
@@ -106,9 +112,9 @@ export default function AffiliatePage() {
         setEffectiveStatus(
           resolved.effectiveStatus
         );
-      }                                          
+      }*/                                                 //-----|🟡🟡PATCHED 160526
 
-      // 📊 Get affiliate info =======================
+      // 📊 GET AFFILIATE INFO =======================
       const { data: affiliateData } = await supabase
         .from("affiliates")
       /*.select("referral_code, total_earned, total_referrals")*/
@@ -132,8 +138,7 @@ export default function AffiliatePage() {
       if (referralsData) {
         setReferrals(referralsData);
       }
-
-      setLoading(false);
+    /*setLoading(false);*/
     }
 
     loadData();
@@ -230,7 +235,7 @@ export default function AffiliatePage() {
     );
   }                                         //-----|🟡🟡PATCHED 120526
 
-  //ACTIVATION PAGE ======================  //|-----🟡🟡PATCHED AFFILIATE
+  //ACTIVATION PAGE (JSX)======================  //|-----🟡🟡PATCHED AFFILIATE
   if (
     !affiliate &&
     (effectiveTier === "student" || effectiveTier === "pro") &&

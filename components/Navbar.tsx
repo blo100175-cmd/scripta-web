@@ -1,40 +1,43 @@
 //SCRIPTA V1.1.150526 - DB-UI SYNCHRONIZATION | GLOBAL AUTH PROVIDER
+//SCRIPTA V1.1.160526 - CLEANUP - resolveEffectiveTier
 "use client";
 import Link from "next/link";
 /*import { useEffect, useState } from "react";*/
 import { useEffect, useState, useCallback } from "react";
 import { getSupabase } from "@/lib/supabaseClient";         //🟡🟡PATCHED 9/4/26
-import { useAuth } from "@/components/AuthProvider";        //🟡🟡PATCHED 150526 - GLOBAL AUTH PROVIDER
+import { useAuth } from "@/components/AuthProvider";        //🟡🟡PATCHED 150526
 /*import { createClient } from "@supabase/supabase-js";*/
 import { useRouter } from "next/navigation";
-import { resolveEffectiveTier } from "@/lib/resolveEffectiveTier";
+/*import { resolveEffectiveTier } from "@/lib/resolveEffectiveTier";*/
 
 export default function Navbar() {
 
   const supabase = getSupabase();                   //🟡🟡PATCHED 10/4/26
-  const {user: authUser,loading,} = useAuth();      //🟡🟡PATCHED 150526 -  GLOBAL AUTH PROVIDER
+/*const {user: authUser,loading,} = useAuth();*/    
+  const {user: authUser,loading,profile,tier,usage,effectiveTier,effectiveStatus,} = useAuth();     //🟡🟡PATCHED 150526
+
   const router = useRouter();                       //🟡🟡 PATCHED 15/3/26
 
   const [user,setUser] = useState<any>(null);
-  const [tier,setTier] = useState<string>("free");
+/*const [tier,setTier] = useState<string>("free");*/
   const [health,setHealth] = useState<string>("🟢");
 
 /*useEffect(()=>{
     async function loadUser(){*/
 
-  const loadUser = useCallback(async () => {        //🟡🟡PATCHED 150526 - DB-UI SYNCHRONIZATION
+  const loadUser = useCallback(async () => {        //🟡🟡PATCHED 150526
 
     /*const {data:{user}} = await supabase.auth.getUser();*/
 
-      const user = authUser;                        //🟡🟡PATCHED 150526 - GLOBAL AUTH PROVIDER
+      const user = authUser;                        //🟡🟡PATCHED 150526
       
-      if (loading) return;                          //🟡🟡PATCHED 150526 - GLOBAL AUTH PROVIDER
+      if (loading) return;                          //🟡🟡PATCHED 150526
 
       if(!user) return;
 
       setUser(user);
 
-      const { data: profile } = await supabase      //|-----🟡🟡 PATCHED 120526
+    /*const { data: profile } = await supabase      //|-----🟡🟡 PATCHED 120526
         .from("profiles")
         .select(`
           subscription_tier,
@@ -66,16 +69,16 @@ export default function Navbar() {
         if (resolved.effectiveStatus === "expired") {
           setHealth("🔴");
         }
-      }                                             //-----|🟡🟡 PATCHED 120526
+      }*/                                            //-----|🟡🟡 PATCHED 120526
       
-      const monthKey = new Date().toISOString().slice(0,7);
+    /*const monthKey = new Date().toISOString().slice(0,7);
 
       const {data:usage} = await supabase
         .from("user_usage")
         .select("total_pages,page_limit")
         .eq("user_id",user.id)
         .eq("month_key",monthKey)
-        .maybeSingle();
+        .maybeSingle();*/
 
       if (usage && usage.page_limit) {
 

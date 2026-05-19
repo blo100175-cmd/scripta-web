@@ -1,4 +1,5 @@
 //SCRIPTA V1.1.140526 - SECURITY PATCH
+//SCRIPTA V1.1.180526 - VALIDATION, CONSISTENCY HARDENING + CLEANUP
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";     //🟡🟡PATCHED 140526 - SECURITY PATCH
 
@@ -29,6 +30,27 @@ export async function POST(req: Request) {
 
   const { customerId } = await req.json();
 
+  if (typeof customerId !== "string") {     //|-----🟡🟡PATCHED 180526
+    return new Response(
+      "Invalid customerId format",
+      { status: 400 }
+    );
+  }
+
+  if (!customerId.trim()) {
+    return new Response(
+      "Missing customerId",
+      { status: 400 }
+    );
+  }
+
+  if (customerId.length > 100) {
+    return new Response(
+      "Invalid customerId length",
+      { status: 400 }
+    );
+  }                                         //-----|🟡🟡PATCHED 180526
+
   const stripe = getStripe();  //🟡🟡 PATCHED 30/3/26
 
   const supabase = getSupabase();   //🟡🟡PATCHED 140526 - SECURITY PATCH
@@ -46,9 +68,9 @@ export async function POST(req: Request) {
     );
   }                                   //-----|🟡🟡PATCHED 140526
 
-  if (!customerId) {
+/*if (!customerId) {
     return new Response("Missing customerId", { status: 400 });
-  }
+  }*/
 
   const session = await stripe.billingPortal.sessions.create({
     customer: customerId,
