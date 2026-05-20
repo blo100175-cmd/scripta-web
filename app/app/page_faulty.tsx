@@ -1,14 +1,14 @@
 //SCRIPTA V1.1.060426 - AFFILIATE BUILD-IN 
 //SCRIPTA V1.1.140526 - BUG FIXING - DOWNLOAD LINK BUTTON | PREVENT DUPLICATION
 //SCRIPTA V1.1.140526 - BUG FIXING - REMOVE STALE RECOVERY STATE AFTER MANUAL RESET
-//SCRIPTA V1.1.200526 - FUNCTION RECOVERY (R) + AUTH CENTRALIZTION 
+//SCRIPTA V1.1.180526 - FULL-STATE CENTRALIZATION IMPLEMENTATION + CLEANUP
 "use client";
 
 import { useState, useEffect } from "react";
 import { extractText, getDocumentProxy } from "unpdf";
-import TaglineStrip from "@/components/TaglineStrip";                     //🟡🟡PATCHED 16/3/26
-import { getSupabase } from "@/lib/supabaseClient";                       //🟡🟡PATCHED 8/4/26 - SUPABASE CLIENT SIGN IN
-import { useAuth } from "@/components/AuthProvider";                      //🟡🟡PATCHED 200526
+import TaglineStrip from "@/components/TaglineStrip";  //🟡🟡PATCHED 16/3/26
+import { getSupabase } from "@/lib/supabaseClient";    //🟡🟡PATCHED 8/4/26 - SUPABASE CLIENT SIGN IN
+import { useAuth } from "@/components/AuthProvider";   //🟡🟡PATCHED 180526
 
 /* ------------------ PDF EXTRACTION ------------------ */
 async function extractPdfText(file: File): Promise<string> {
@@ -20,14 +20,14 @@ async function extractPdfText(file: File): Promise<string> {
 
 /* ------------------ RPC SAVE TEXT ------------------ */
 /*async function saveExtractedText(docKey: string, text: string) {
-  const { error } = await (supabase as any).rpc("save_extracted_text", {  //🟡🟡PATCHED 8/4/26
+  const { error } = await (supabase as any).rpc("save_extracted_text", {       //🟡🟡PATCHED 8/4/26
     p_doc_key: docKey,
     p_text: text,
   });
   if (error) throw error;
 }*/
 
-async function saveExtractedText(                                         //|-----🟡🟡PATCHED 10/4/26
+async function saveExtractedText(           //|-----🟡🟡PATCHED 10/4/26
   supabase: any,
   docKey: string,
   text: string
@@ -42,15 +42,15 @@ async function saveExtractedText(                                         //|---
 /* ================== MAIN PAGE ================== */
 export default function Home() {
 
-  const supabase = getSupabase();                                         //🟡🟡PATCHED 8/4/26 - SUPABASE CLIENT SIGN IN
-
-  const { user } = useAuth();                                             //🟡🟡PATCHED 200526
+  const supabase = getSupabase();        //🟡🟡PATCHED 8/4/26 - SUPABASE CLIENT SIGN IN
 
   /* ---------------- AUTH ---------------- */
-//const [user, setUser] = useState<any>(null);                            //R-OPT-OUT 200526
-//const user = authUser;                                                  //R-OPT-OUT 200526
+  const {user: authUser, loading: authProviderLoading, profile, tier, usage, 
+    effectiveTier, effectiveStatus,} = useAuth();                         //🟡🟡PATCHED 180526
+/*const [user, setUser] = useState<any>(null);*/
+  const user = authUser;                                                  //🟡🟡PATCHED 190526
   const [anonId, setAnonId] = useState<string | null>(null);
-//const [authLoading, setAuthLoading] = useState(true);                   //R-OPT-OUT 200526
+/*const [authLoading, setAuthLoading] = useState(true);*/
 
   /* -------------- PIPELINE STATE -------------- */
   const [file, setFile] = useState<File | null>(null);
@@ -62,25 +62,24 @@ export default function Home() {
   >(null);
 
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [activeDocKey, setActiveDocKey] = useState<string | null>(null);  //🟡🟡PATCHED 140526 - BUG FIXING - DOWNLOAD LINK BUTTON
-  const [isRecovering, setIsRecovering] = useState(false);                //🟡🟡PATCHED 140526 - PREVENT DUPLICATION
+  const [activeDocKey, setActiveDocKey] = useState<string | null>(null);   //🟡🟡PATCHED 140526 - BUG FIXING - DOWNLOAD LINK BUTTON
+  const [isRecovering, setIsRecovering] = useState(false);          //🟡🟡PATCHED 140526 - PREVENT DUPLICATION
   const [isUploading, setIsUploading] = useState(false);
 
   /* ---------------- AUTH SESSION ---------------- */
   useEffect(() => {
 
-    console.log("URL DEBUG:", window.location.href);                      //🟡🟡 PATCHED 7/4/26
+  //console.log("URL DEBUG:", window.location.href);
 
-    // ========== AFFILIATE REF CAPTURE ==========                        //|-----🟡🟡 PATCHED 6/4/26 - AFFILIATE SYSTEM
-
-    const url = window.location.href;                   //|-----🟡🟡 PATCHED 7/4/26
+    // ========== AFFILIATE REF CAPTURE ==========
+    const url = window.location.href;
     const refMatch = url.match(/[?&]ref=([^&]+)/);
-    const ref = refMatch ? refMatch[1] : null;          //-----|🟡🟡 PATCHED 7/4/26
+    const ref = refMatch ? refMatch[1] : null;
 
-    if (ref && !localStorage.getItem("ref_code")) {    //🟡🟡 PATCHED 7/4/26
-      console.log("✅ REF DETECTED:", ref);           //🟡🟡 PATCHED 7/4/26
+    if (ref && !localStorage.getItem("ref_code")) {
+      console.log("✅ REF DETECTED:", ref);
       localStorage.setItem("ref_code", ref);
-    }                                                 //-----|🟡🟡 6/4/26
+    }
 
     /* ===== ANON USER ID ===== */
     let storedAnon = localStorage.getItem("anon_user_id");
@@ -91,21 +90,12 @@ export default function Home() {
     }
 
     setAnonId(storedAnon);
-    const savedDocKey =                                 //|-----🟡🟡PATCHED 140526 - DOWNLOAD LINK BUTTON
+
+    const savedDocKey =
       localStorage.getItem("active_doc_key");
 
-  /*if (savedDocKey) {
-
-      setActiveDocKey(savedDocKey);
-
-      setStatus("Recovering active document...");
-
-      pollDocumentStatus(savedDocKey)
-        .catch(console.error);
-
-    }*/                                         
-  /*if (savedDocKey) {*/
     if (savedDocKey && !isRecovering) {
+
       setIsRecovering(true);
       setActiveDocKey(savedDocKey);
       setStatus("Recovering active document...");
@@ -123,81 +113,92 @@ export default function Home() {
           ) {
 
             setDocStatus("COMPLETED");
-
             setPdfUrl(data.pdf_url);
 
             localStorage.removeItem("active_doc_key");
-            setIsRecovering(false);                                   //🟡🟡PATCHED 140526 - PREVENT DUPLICATION
+
+            setIsRecovering(false);
             return;
           }
 
-        /*pollDocumentStatus(savedDocKey)
-            .catch(console.error);*/
-          pollDocumentStatus(savedDocKey)   
+          pollDocumentStatus(savedDocKey)
             .catch(console.error)
-            .finally(() => {                                          //🟡🟡PATCHED 140526 - PREVENT DUPLICATION
-              setIsRecovering(false);                                 //🟡🟡PATCHED 140526 - PREVENT DUPLICATION
-            });  
-        });
-    }                                                                 //-----|🟡🟡PATCHED 140526
-
-    /* ===== AUTH SESSION ===== */
-    supabase.auth.getSession().then(async ({ data }) => {             //|----- 🟡🟡 PATCHED 6/4/26 - AFFILIATE REGISTER
-      const currentUser = data.session?.user ?? null;
-
-    //setUser(currentUser);                                           //R-OPT-OUT 200526
-      
-      if (!currentUser && !anonId) return;                            //🟡🟡PATCHED 200526
-
-    //setAuthLoading(false);                                          //R-OPT-OUT 200526
-
-      // ========== AFFILIATE REGISTER ==========
-    //if (currentUser) {                                              //R-OPT-OUT 200526
-      if (user) {                                                     //🟡🟡PATCHED 200526
-        const refCode = localStorage.getItem("ref_code");
-
-        if (refCode) {
-          try {
-            await fetch("/api/affiliate/register", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                referral_code: refCode,
-              //user_id: currentUser.id,                              //R-OPT-OUT 200526
-                user_id: user.id,                                     //🟡🟡PATCHED 200526
-              }),
+            .finally(() => {
+              setIsRecovering(false);
             });
 
-            localStorage.removeItem("ref_code");
-          } catch (e) {
-            console.error("Affiliate register failed", e);
-          }
+        });
+    }
+
+    // ========== AFFILIATE REGISTER ==========
+    const runAffiliateRegister = async () => {
+
+      if (authUser) {
+
+        const refCode = localStorage.getItem("ref_code");
+        
+        if (!refCode) return;                                     //🟡🟡PATCHED 190526
+
+        try {
+
+          await fetch("/api/affiliate/register", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              referral_code: refCode,
+              user_id: authUser.id,
+            }),
+          });
+
+          localStorage.removeItem("ref_code");
+
+        } catch (e) {
+
+          console.error("Affiliate register failed", e);
+
         }
       }
-    });                   //-----| 🟡🟡 PATCHED 6/4/26
+    };
 
+    if (authUser) {                                               //|-----🟡🟡PATCHED 190526
+      runAffiliateRegister();
+    }                                                             //-----|🟡🟡PATCHED 190526
+
+    // ===== PASSIVE AUTH CLEANUP LISTENER =====
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event) => {              //🟡🟡PATCHED 190526
 
-    //setUser(session?.user ?? null);                                 //R-OPT-OUT 20526
+      if (event === "INITIAL_SESSION") return;                    //🟡🟡PATCHED 190526
+      
+      if (event === "TOKEN_REFRESHED") return;                    //🟡🟡PATCHED 190526
+
+      if (event === "USER_UPDATED") return;                       //🟡🟡PATCHED 190526
+
+    //if (event === "SIGNED_IN") return;                          //🟡🟡PATCHED 190526
+
+      if (event === "SIGNED_OUT") {                               //🟡🟡PATCHED 190526
 
       // reset pipeline state on auth change
       setFile(null);
       setDocStatus(null);
       setPdfUrl(null);
       setStatus("");
-      setActiveDocKey(null);                                          //🟡🟡PATCHED 140526 - REMOVE STALE RECOVERY STATE
+      setActiveDocKey(null);
 
-      localStorage.removeItem("active_doc_key");                      //🟡🟡PATCHED 140526 - REMOVE STALE RECOVERY STATE
-    });
+      localStorage.removeItem("active_doc_key");
 
-    return () => subscription.unsubscribe();
+    }});                                                          //🟡🟡PATCHED 190526
 
-//}, []);
-  }, [user, isRecovering]);                                           //🟡🟡PATCHED 200526
+  //return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };                                                            //🟡🟡PATCHED 190526
+
+//}, [authUser, isRecovering]);
+    }, [authUser]);                                               //🟡🟡PATCHED 190526
 
   /* ---------------- FILE HANDLERS ---------------- */
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -215,12 +216,12 @@ export default function Home() {
   async function uploadFile() {
 
     if (!file || isUploading) return;
-
-    if (!user && !anonId) {                                           //|-----🟡🟡PATCHED 200526
+    
+    if (!authUser && !anonId) {                                    //|-----🟡🟡PATCHED 190526
       setStatus("Initializing session...");
       return;
-    }                                                                 //-----|🟡🟡PATCHED 200526
-    
+    }                                                              //-----|🟡🟡PATCHED 190526
+
     setIsUploading(true);
 
     try {
@@ -240,7 +241,8 @@ export default function Home() {
       const { data: inserted, error: insertError } = await (supabase as any)   //🟡🟡PATCHED 8/4/26
         .from("incoming_files")
         .insert({
-          user_id: user ? String(user.id) : anonId,
+        /*user_id: authUser ? String(user.id) : anonId,*/
+          user_id: authUser ? String(authUser.id) : anonId,
           file_name: file.name,
           bucket: "incoming",
           storage_path: filePath,
