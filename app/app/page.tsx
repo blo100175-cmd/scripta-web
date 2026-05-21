@@ -76,10 +76,10 @@ export default function Home() {
     console.log("AUTH EFFECT USER:", user?.id || "ANON");                  //🟡🟡PATCHED 200526
     console.log("URL DEBUG:", window.location.href);
 
-    if (!user && !anonId) {
+  /*if (!user && !anonId) {
       console.log("WAITING FOR ANON INITIALIZATION");                      //🟡🟡PATCHED 200526
       return;
-    }
+    }*/
 
     /*================ AFFILIATE REF CAPTURE ================= */
 
