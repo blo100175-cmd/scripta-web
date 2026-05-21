@@ -1,10 +1,14 @@
 //SCRIPTA V1.1.060426 - AFFILIATE BUILD-IN 
+//SCRIPTA V1.1.140526 - BUG FIXING - DOWNLOAD LINK BUTTON | PREVENT DUPLICATION
+//SCRIPTA V1.1.140526 - BUG FIXING - REMOVE STALE RECOVERY STATE AFTER MANUAL RESET
+//SCRIPTA V1.1.200526 - FUNCTION RECOVERY (R) + AUTH CENTRALIZTION 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState, useRef } from "react";                      //🟡🟡PATCHED 200526
 import { extractText, getDocumentProxy } from "unpdf";
-import TaglineStrip from "@/components/TaglineStrip";  //🟡🟡PATCHED 16/3/26
-import { getSupabase } from "@/lib/supabaseClient";    //🟡🟡PATCHED 8/4/26 - SUPABASE CLIENT SIGN IN
+import TaglineStrip from "@/components/TaglineStrip";                     //🟡🟡PATCHED 16/3/26
+import { getSupabase } from "@/lib/supabaseClient";                       //🟡🟡PATCHED 8/4/26 - SUPABASE CLIENT SIGN IN
+import { useAuth } from "@/components/AuthProvider";                      //🟡🟡PATCHED 200526
 
 /* ------------------ PDF EXTRACTION ------------------ */
 async function extractPdfText(file: File): Promise<string> {
@@ -16,14 +20,14 @@ async function extractPdfText(file: File): Promise<string> {
 
 /* ------------------ RPC SAVE TEXT ------------------ */
 /*async function saveExtractedText(docKey: string, text: string) {
-  const { error } = await (supabase as any).rpc("save_extracted_text", {       //🟡🟡PATCHED 8/4/26
+  const { error } = await (supabase as any).rpc("save_extracted_text", {  //🟡🟡PATCHED 8/4/26
     p_doc_key: docKey,
     p_text: text,
   });
   if (error) throw error;
 }*/
 
-async function saveExtractedText(           //|-----🟡🟡PATCHED 10/4/26
+async function saveExtractedText(                                         //|-----🟡🟡PATCHED 10/4/26
   supabase: any,
   docKey: string,
   text: string
@@ -38,12 +42,16 @@ async function saveExtractedText(           //|-----🟡🟡PATCHED 10/4/26
 /* ================== MAIN PAGE ================== */
 export default function Home() {
 
-  const supabase = getSupabase();        //🟡🟡PATCHED 8/4/26 - SUPABASE CLIENT SIGN IN
+  const supabase = getSupabase();                                         //🟡🟡PATCHED 8/4/26 - SUPABASE CLIENT SIGN IN
+
+//const { user } = useAuth();                                             //R-OPT-OUT 200526
+  const { user, loading } = useAuth();                                    //🟡🟡PATCHED 200526
 
   /* ---------------- AUTH ---------------- */
-  const [user, setUser] = useState<any>(null);
+//const [user, setUser] = useState<any>(null);                            //R-OPT-OUT 200526
+//const user = authUser;                                                  //R-OPT-OUT 200526
   const [anonId, setAnonId] = useState<string | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+//const [authLoading, setAuthLoading] = useState(true);                   //R-OPT-OUT 200526
 
   /* -------------- PIPELINE STATE -------------- */
   const [file, setFile] = useState<File | null>(null);
@@ -55,25 +63,36 @@ export default function Home() {
   >(null);
 
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [activeDocKey, setActiveDocKey] = useState<string | null>(null);  //🟡🟡PATCHED 140526 - BUG FIXING - DOWNLOAD LINK BUTTON
+  const [isRecovering, setIsRecovering] = useState(false);                //🟡🟡PATCHED 140526 - PREVENT DUPLICATION
   const [isUploading, setIsUploading] = useState(false);
+  const orchestrationReadyRef = useRef(false);                            //🟡🟡PATCHED 200526
 
-  /* ---------------- AUTH SESSION ---------------- */
-  useEffect(() => {
+  /* ================= AUTH SESSION ================= */
+  useEffect(() => {                                                        //|-----🟡🟡PATCHED 200526
 
-    console.log("URL DEBUG:", window.location.href);    //🟡🟡 PATCHED 7/4/26
+    console.log("AUTH EFFECT EXECUTED");                                   //🟡🟡PATCHED 200526
+    console.log("AUTH EFFECT RECOVERY STATE:", isRecovering);              //🟡🟡PATCHED 200526
+    console.log("AUTH EFFECT USER:", user?.id || "ANON");                  //🟡🟡PATCHED 200526
+    console.log("URL DEBUG:", window.location.href);
 
-    // ========== AFFILIATE REF CAPTURE ==========               //|-----🟡🟡 PATCHED 6/4/26 - AFFILIATE SYSTEM
+    if (!user && !anonId) {
+      return;
+    }
 
-    const url = window.location.href;                   //|-----🟡🟡 PATCHED 7/4/26
+    /*================ AFFILIATE REF CAPTURE ================= */
+
+    const url = window.location.href;
     const refMatch = url.match(/[?&]ref=([^&]+)/);
-    const ref = refMatch ? refMatch[1] : null;          //-----|🟡🟡 PATCHED 7/4/26
+    const ref = refMatch ? refMatch[1] : null;
 
-    if (ref && !localStorage.getItem("ref_code")) {    //🟡🟡 PATCHED 7/4/26
-      console.log("✅ REF DETECTED:", ref);           //🟡🟡 PATCHED 7/4/26
+    if (ref && !localStorage.getItem("ref_code")) {
+      console.log("✅ REF DETECTED:", ref);
       localStorage.setItem("ref_code", ref);
-    }                                                 //-----|🟡🟡 6/4/26
+    }
 
     /* ===== ANON USER ID ===== */
+
     let storedAnon = localStorage.getItem("anon_user_id");
 
     if (!storedAnon) {
@@ -83,57 +102,129 @@ export default function Home() {
 
     setAnonId(storedAnon);
 
-    /* ===== AUTH SESSION ===== */
-    supabase.auth.getSession().then(async ({ data }) => {   //|----- 🟡🟡 PATCHED 6/4/26 - AFFILIATE REGISTER
-      const currentUser = data.session?.user ?? null;
+    const savedDocKey =
+      localStorage.getItem("active_doc_key");
 
-      setUser(currentUser);
-      setAuthLoading(false);
+    if (savedDocKey && !isRecovering) {
 
-      // ========== AFFILIATE REGISTER ==========
-      if (currentUser) {
-        const refCode = localStorage.getItem("ref_code");
+      console.log("RECOVERY FLOW START:", savedDocKey);                    //🟡🟡PATCHED 200526
 
-        if (refCode) {
-          try {
-            await fetch("/api/affiliate/register", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                referral_code: refCode,
-                user_id: currentUser.id,
-              }),
+      setIsRecovering(true);
+      setActiveDocKey(savedDocKey);
+      setStatus("Recovering active document...");
+
+      supabase
+        .from("documents")
+        .select("status, pdf_url")
+        .eq("doc_key", savedDocKey)
+        .maybeSingle()
+        .then(({ data }) => {
+
+          if (
+            data?.status === "COMPLETED" &&
+            data?.pdf_url
+          ) {
+
+            setDocStatus("COMPLETED");
+            setPdfUrl(data.pdf_url);
+
+            localStorage.removeItem("active_doc_key");
+
+            setIsRecovering(false);
+
+            return;
+          }
+
+          console.log("RECOVERY POLLING START:", savedDocKey);            //🟡🟡PATCHED 200526
+
+          pollDocumentStatus(savedDocKey)
+            .catch(console.error)
+            .finally(() => {
+              setIsRecovering(false);
             });
 
-            localStorage.removeItem("ref_code");
-          } catch (e) {
-            console.error("Affiliate register failed", e);
-          }
-        }
+        });
+    }
+
+    /* =============== ORCHESTRATION READY ================= */
+    console.log("AUTH LOADING STATE:", loading);                          //🟡🟡PATCHED 200526
+
+    if (loading) {                                                        //|-----🟡🟡PATCHED 200526
+      setStatus("Initializing session...");                               //🟡🟡PATCHED 200526
+      console.log("WAITING FOR AUTH HYDRATION");                          //🟡🟡PATCHED 200526
+      return;
+    }                                                                     //-----|🟡🟡PATCHED 200526
+
+    console.log("AUTH HYDRATION COMPLETE");                               //🟡🟡PATCHED 200526
+
+    if (orchestrationReadyRef.current) {
+      console.log("ORCHESTRATION ALREADY READY");                         //🟡🟡PATCHED 200526
+      console.log("ORCHESTRATION RE-ENTRY BLOCKED");                      //🟡🟡PATCHED 200526
+      return;
+    }
+
+    setStatus("");                                                        //🟡🟡PATCHED 200526
+
+    /* =============== AFFILIATE REGISTER ================= */
+
+    if (user && orchestrationReadyRef.current === false) {
+
+      console.log("AFFILIATE REGISTRATION CHECK");                        //🟡🟡PATCHED 200526
+
+      const refCode = localStorage.getItem("ref_code");
+
+      if (refCode) {
+
+        fetch("/api/affiliate/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            referral_code: refCode,
+            user_id: user.id,
+          }),
+        });
+
+        localStorage.removeItem("ref_code");
+        console.log("AFFILIATE REGISTRATION COMPLETE");                   //🟡🟡PATCHED 200526
       }
-    });                   //-----| 🟡🟡 PATCHED 6/4/26
+    }
+
+    orchestrationReadyRef.current = true;
+
+    /* =============== AUTH STATE LISTENER ================= */
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event) => {
 
-      setUser(session?.user ?? null);
+      console.log("AUTH STATE CHANGE:", _event);                          //🟡🟡PATCHED 200526
+      console.log("AUTH LISTENER USER:", user?.id || "ANON");             //🟡🟡PATCHED 200526
+      
+      if (loading) {                                                      //|-----🟡🟡PATCHED 200526
+        return;
+      }                                                                   //-----|🟡🟡PATCHED 200526
+
+      console.log("PASSIVE AUTH LISTENER ACTIVE");                        //🟡🟡PATCHED 200526
 
       // reset pipeline state on auth change
       setFile(null);
       setDocStatus(null);
       setPdfUrl(null);
       setStatus("");
+      setActiveDocKey(null);
 
+      localStorage.removeItem("active_doc_key");
     });
 
+    console.log("AUTH EFFECT READY COMPLETE");                            //🟡🟡PATCHED 200526
+    console.log("ORCHESTRATION READY STATE:", orchestrationReadyRef.current);   //🟡🟡PATCHED 200526
     return () => subscription.unsubscribe();
 
-  }, []);
+  }, [user, anonId, isRecovering]);                                       //-----|🟡🟡PATCHED 200526
 
-  /* ---------------- FILE HANDLERS ---------------- */
+  /* ================= FILE HANDLERS ================ */
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
 
     if (!e.target.files?.length) return;
@@ -145,25 +236,55 @@ export default function Home() {
 
   }
 
-  /* ---------------- UPLOAD FLOW ---------------- */
+  /* ================== UPLOAD FLOW ================= */
   async function uploadFile() {
 
     if (!file || isUploading) return;
+
+    console.log("UPLOAD ATTEMPT");                                    //🟡🟡PATCHED 200526
+
+  //if (!user && !anonId) {                                           //R-OPT-OUT 200526
+  //if (!orchestrationReadyRef.current) {                             //R-OPT-OUT 200526
+    console.log("ORCHESTRATION READY:", orchestrationReadyRef.current);     //🟡🟡PATCHED 200526
+
+    if (loading || !orchestrationReadyRef.current) {                  //🟡🟡PATCHED 200526
+      setStatus("Waiting for orchestration readiness...");            //🟡🟡PATCHED 200526    
+      setIsUploading(false);                                          //🟡🟡PATCHED 200526
+      console.log("UPLOAD BLOCKED - NOT READY");                      //🟡🟡PATCHED 200526
+      return;
+    }                                                                 //-----|🟡🟡PATCHED 200526
+    
     setIsUploading(true);
 
+    setStatus("Preparing upload...");                                 //🟡🟡PATCHED 200526  
+
+    console.log("UPLOAD PREPARATION COMPLETE");                       //🟡🟡PATCHED 200526
     try {
 
-      setStatus("Uploading file...");
+      setStatus("Uploading to storage...");                           //🟡🟡PATCHED 200526
 
       const filePath = `${Date.now()}-${file.name}`;
+
+      console.log("START STORAGE UPLOAD:", filePath);                 //🟡🟡PATCHED 200526
 
       const { error: uploadError } = await supabase.storage
         .from("incoming")
         .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+    //if (uploadError) throw uploadError;                             //R-OPT-OUT 200526
+      if (uploadError) {                                              //|-----🟡🟡PATCHED 200526
+
+        console.error("STORAGE UPLOAD ERROR:", uploadError);
+
+        setStatus("Storage upload failed");
+        setIsUploading(false);
+
+        throw uploadError;
+      }                                                               //-----|🟡🟡PATCHED 200526
 
       setStatus("Registering file...");
+      console.log("BEGIN DB REGISTRATION");                           //🟡🟡PATCHED 200526
+      console.log("STORAGE UPLOAD COMPLETE:", filePath);              //🟡🟡PATCHED 200526
 
       const { data: inserted, error: insertError } = await (supabase as any)   //🟡🟡PATCHED 8/4/26
         .from("incoming_files")
@@ -181,6 +302,8 @@ export default function Home() {
 
       const incomingId = inserted.id;
 
+      console.log("DB REGISTRATION COMPLETE:", incomingId);           //🟡🟡PATCHED 200536
+
       setStatus("Waiting for registration...");
 
       let resolvedDocKey: string | null = null;
@@ -195,6 +318,11 @@ export default function Home() {
 
         if (data?.status === "registered" && data?.doc_key) {
           resolvedDocKey = data.doc_key;
+          setActiveDocKey(resolvedDocKey);                              //|-----🟡🟡PATCHED 140526 - BUG FIXING - DOWNLOAD LINK BUTTON
+          localStorage.setItem(
+            "active_doc_key",
+            resolvedDocKey as string
+          );                                                            //-----|🟡🟡PATCHED 140526
           break;
         }
 
@@ -216,20 +344,30 @@ export default function Home() {
         setStatus("Saving extracted text...");
 
       /*await saveExtractedText(resolvedDocKey, text);*/
-        await saveExtractedText(supabase, resolvedDocKey, text);   //🟡🟡PTCHED 10/4/26
+        await saveExtractedText(supabase, resolvedDocKey, text);        //🟡🟡PATCHED 10/4/26
 
       }
 
       setStatus("Processing document...");
-
+      console.log("PROCESSING START:", resolvedDocKey);                 //🟡🟡PATCHED 200526
       await pollDocumentStatus(resolvedDocKey);
 
+      console.log("PROCESSING COMPLETE:", resolvedDocKey);              //🟡🟡PATCHED 200526
+      console.log("FULL PIPELINE COMPLETE");                            //🟡🟡PATCHED 200526
+      
+      setStatus("Processing complete");                                 //🟡🟡PATCHED 200526
       setFile(null);
 
     } catch (err: any) {
 
-      console.error(err);
-      setStatus(`❌ ${err.message || "Unexpected error"}`);
+    /*console.error(err);
+      setStatus(`❌ ${err.message || "Unexpected error"}`);*/
+
+      console.error(err);                                               //|-----🟡🟡PATCHED 140526 - DOWNLOAD LINK BUTTON
+      localStorage.removeItem("active_doc_key");
+      console.log("PIPELINE RESET COMPLETE");                           //🟡🟡PATCHED 200526
+      setActiveDocKey(null);
+      setStatus(`❌ ${err.message || "Unexpected error"}`);             //-----|🟡🟡PATCHED 140526
 
     } finally {
 
@@ -288,6 +426,9 @@ export default function Home() {
       if (row.status === "COMPLETED") {
         setDocStatus("COMPLETED");
         setPdfUrl(row.pdf_url);
+
+        localStorage.removeItem("active_doc_key");                      //🟡🟡PATCHED 140526 - DOWNLOAD LINK BUTTON
+        
         setIsUploading(false);
         return;
       }
