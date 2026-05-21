@@ -77,6 +77,7 @@ export default function Home() {
     console.log("URL DEBUG:", window.location.href);
 
     if (!user && !anonId) {
+      console.log("WAITING FOR ANON INITIALIZATION");                      //🟡🟡PATCHED 200526
       return;
     }
 
@@ -101,6 +102,7 @@ export default function Home() {
     }
 
     setAnonId(storedAnon);
+    console.log("ANON ID INITIALIZED:", storedAnon);                       //🟡🟡PATCHED 200526
 
     const savedDocKey =
       localStorage.getItem("active_doc_key");
@@ -192,6 +194,7 @@ export default function Home() {
     }
 
     orchestrationReadyRef.current = true;
+    console.log("ORCHESTRATION READY SET TRUE");                          //🟡🟡PATCHED 200526
 
     /* =============== AUTH STATE LISTENER ================= */
 
