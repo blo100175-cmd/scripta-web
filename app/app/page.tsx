@@ -95,15 +95,36 @@ export default function Home() {
 
     /* ===== ANON USER ID ===== */
 
-    let storedAnon = localStorage.getItem("anon_user_id");
+  /*let storedAnon = localStorage.getItem("anon_user_id");
 
     if (!storedAnon) {
       storedAnon = "anon_" + crypto.randomUUID();
       localStorage.setItem("anon_user_id", storedAnon);
     }
 
-    setAnonId(storedAnon);
-    console.log("ANON ID INITIALIZED:", storedAnon);                       //🟡🟡PATCHED 200526
+    setAnonId(storedAnon);*/                                               //R-OPT-OUT 240526
+
+    if (!user) {                                                           //|-----🟡🟡PATCHED 240536
+
+      let storedAnon = localStorage.getItem("anon_user_id");
+
+      if (!storedAnon) {
+        storedAnon = "anon_" + crypto.randomUUID();
+        localStorage.setItem("anon_user_id", storedAnon);
+      }
+
+      setAnonId(storedAnon);
+
+      console.log("ANON ID INITIALIZED:", storedAnon);
+
+    } else {
+
+      setAnonId(null);
+
+      console.log("AUTH USER SESSION ACTIVE:", user.id);
+    }                                                                      //-----|🟡🟡PATCHED 240526
+
+  //console.log("ANON ID INITIALIZED:", storedAnon);                       //R-OPT-OUT 240526
 
     const savedDocKey =
       localStorage.getItem("active_doc_key");
