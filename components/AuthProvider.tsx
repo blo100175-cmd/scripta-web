@@ -1,13 +1,9 @@
 //SCRIPTA V1.150526 - GLOBAL AUTH PROVIDER | FULL-STATE CENTRALIZATION
+//SCRIPTA V1.240526 - DEBUGGING - DUPLICATED AUTH OWNERSHIP
 "use client";
 import {createContext,useContext,useEffect,useState,} from "react";
 import { getSupabase } from "@/lib/supabaseClient";
 import { resolveEffectiveTier } from "@/lib/resolveEffectiveTier";  //🟡🟡PATCHED 150526
-
-/*type AuthContextType = {
-  user: any;
-  loading: boolean;
-};*/
 
 type AuthContextType = {                                //|-----🟡🟡PATCHED 150526
   user: any;
@@ -82,51 +78,9 @@ export function AuthProvider({
 
       if (!mounted) return;
 
-    /*setUser(user);
-      setLoading(false);*/
-
       setUser(user ?? null);            //|-----🟡🟡PATCHED 150526
       
-      if (user) {
-
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select(`
-            subscription_tier,
-            subscription_status,
-            grace_period_until
-          `)
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        setProfile(profileData);
-
-        if (profileData?.subscription_tier) {
-          setTier(profileData.subscription_tier);
-        }
-
-        const monthKey = new Date()
-          .toISOString()
-          .slice(0, 7);
-
-        const { data: usageData } = await supabase
-          .from("user_usage")
-          .select(`
-            total_pages,
-            page_limit,
-            tier
-          `)
-          .eq("user_id", user.id)
-          .eq("month_key", monthKey)
-          .maybeSingle();
-
-        setUsage(usageData);
-
-      }
-
-      setTimeout(() => {
-        setLoading(false);
-      }, 150);                          //-----|🟡🟡PATCHED 150526
+      setLoading(false);                                    //🟡🟡PATCHED
     }
 
     initialize();
@@ -216,12 +170,6 @@ export function AuthProvider({
   }, []);
 
   return (
-  /*<AuthContext.Provider
-      value={{
-        user,
-        loading,
-      }}*/
-
     <AuthContext.Provider           //|-----🟡🟡PATCHED 150526
       value={{
         user,

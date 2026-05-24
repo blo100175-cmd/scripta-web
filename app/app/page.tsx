@@ -2,9 +2,8 @@
 //SCRIPTA V1.1.140526 - BUG FIXING - DOWNLOAD LINK BUTTON | PREVENT DUPLICATION
 //SCRIPTA V1.1.140526 - BUG FIXING - REMOVE STALE RECOVERY STATE AFTER MANUAL RESET
 //SCRIPTA V1.1.200526 - FUNCTION RECOVERY (R) + AUTH CENTRALIZTION 
-//SCRIPTA V1.1.240526 - DEBUGGING - AUTH UPLOAD FILE MISMATCHED
+//SCRIPTA V1.1.240526 - DEBUGGING - AUTH UPLOAD FILE MISMATCHED + DUPLICATED AUTH OWNERSHIP
 "use client";
-
 import { useEffect, useState, useRef } from "react";                      //🟡🟡PATCHED 200526
 import { extractText, getDocumentProxy } from "unpdf";
 import TaglineStrip from "@/components/TaglineStrip";                     //🟡🟡PATCHED 16/3/26
@@ -20,14 +19,6 @@ async function extractPdfText(file: File): Promise<string> {
 }
 
 /* ------------------ RPC SAVE TEXT ------------------ */
-/*async function saveExtractedText(docKey: string, text: string) {
-  const { error } = await (supabase as any).rpc("save_extracted_text", {  //🟡🟡PATCHED 8/4/26
-    p_doc_key: docKey,
-    p_text: text,
-  });
-  if (error) throw error;
-}*/
-
 async function saveExtractedText(                                         //|-----🟡🟡PATCHED 10/4/26
   supabase: any,
   docKey: string,
@@ -45,14 +36,10 @@ export default function Home() {
 
   const supabase = getSupabase();                                         //🟡🟡PATCHED 8/4/26 - SUPABASE CLIENT SIGN IN
 
-//const { user } = useAuth();                                             //R-OPT-OUT 200526
   const { user, loading } = useAuth();                                    //🟡🟡PATCHED 200526
 
   /* ---------------- AUTH ---------------- */
-//const [user, setUser] = useState<any>(null);                            //R-OPT-OUT 200526
-//const user = authUser;                                                  //R-OPT-OUT 200526
   const [anonId, setAnonId] = useState<string | null>(null);
-//const [authLoading, setAuthLoading] = useState(true);                   //R-OPT-OUT 200526
 
   /* -------------- PIPELINE STATE -------------- */
   const [file, setFile] = useState<File | null>(null);
@@ -77,11 +64,6 @@ export default function Home() {
     console.log("AUTH EFFECT USER:", user?.id || "ANON");                  //🟡🟡PATCHED 200526
     console.log("URL DEBUG:", window.location.href);
 
-  /*if (!user && !anonId) {
-      console.log("WAITING FOR ANON INITIALIZATION");                      //🟡🟡PATCHED 200526
-      return;
-    }*/
-
     /*================ AFFILIATE REF CAPTURE ================= */
 
     const url = window.location.href;
@@ -94,37 +76,46 @@ export default function Home() {
     }
 
     /* ===== ANON USER ID ===== */
+    if (user) {                                                            //|-----🟡🟡PATCHED 240536
 
-  /*let storedAnon = localStorage.getItem("anon_user_id");
-
-    if (!storedAnon) {
-      storedAnon = "anon_" + crypto.randomUUID();
-      localStorage.setItem("anon_user_id", storedAnon);
-    }
-
-    setAnonId(storedAnon);*/                                               //R-OPT-OUT 240526
-
-    if (!user) {                                                           //|-----🟡🟡PATCHED 240536
-
-      let storedAnon = localStorage.getItem("anon_user_id");
-
-      if (!storedAnon) {
-        storedAnon = "anon_" + crypto.randomUUID();
-        localStorage.setItem("anon_user_id", storedAnon);
+      if (anonId !== null) {
+        setAnonId(null);
       }
 
-      setAnonId(storedAnon);
-
-      console.log("ANON ID INITIALIZED:", storedAnon);
+      console.log(
+        "AUTH USER SESSION ACTIVE:",
+        user.id
+      );
 
     } else {
 
-      setAnonId(null);
+      let storedAnon =
+        localStorage.getItem("anon_user_id");
 
-      console.log("AUTH USER SESSION ACTIVE:", user.id);
-    }                                                                      //-----|🟡🟡PATCHED 240526
+      if (!storedAnon) {
 
-  //console.log("ANON ID INITIALIZED:", storedAnon);                       //R-OPT-OUT 240526
+        storedAnon =
+          "anon_" + crypto.randomUUID();
+
+        localStorage.setItem(
+          "anon_user_id",
+          storedAnon
+        );
+      }
+
+      if (                                                          
+        anonId !== storedAnon &&
+        !orchestrationReadyRef.current
+      ) {
+
+        setAnonId(storedAnon);
+
+        console.log(
+          "ANON ID INITIALIZED:",
+          storedAnon
+        );
+      }
+    }                                                                     //-----|🟡🟡PATCHED 240526
 
     const savedDocKey =
       localStorage.getItem("active_doc_key");
@@ -133,6 +124,8 @@ export default function Home() {
 
       console.log("RECOVERY FLOW START:", savedDocKey);                    //🟡🟡PATCHED 200526
 
+      if (isRecovering) return;                                           //🟡🟡PATCHED 240536
+      
       setIsRecovering(true);
       setActiveDocKey(savedDocKey);
       setStatus("Recovering active document...");
@@ -182,7 +175,6 @@ export default function Home() {
     console.log("AUTH HYDRATION COMPLETE");                               //🟡🟡PATCHED 200526
 
     if (orchestrationReadyRef.current) {
-      console.log("ORCHESTRATION ALREADY READY");                         //🟡🟡PATCHED 200526
       console.log("ORCHESTRATION RE-ENTRY BLOCKED");                      //🟡🟡PATCHED 200526
       return;
     }
@@ -220,7 +212,7 @@ export default function Home() {
 
     /* =============== AUTH STATE LISTENER ================= */
 
-    const {
+  /*const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event) => {
 
@@ -243,11 +235,17 @@ export default function Home() {
       localStorage.removeItem("active_doc_key");
     });
 
-    console.log("AUTH EFFECT READY COMPLETE");                            //🟡🟡PATCHED 200526
-    console.log("ORCHESTRATION READY STATE:", orchestrationReadyRef.current);   //🟡🟡PATCHED 200526
-    return () => subscription.unsubscribe();
+    console.log("AUTH EFFECT READY COMPLETE");                            //R-OPT-OUT
+    console.log("ORCHESTRATION READY STATE:", orchestrationReadyRef.current);   //R-OPT-OUT
+    
+    return () => subscription.unsubscribe();*/
 
-  }, [user, anonId, isRecovering]);                                       //-----|🟡🟡PATCHED 200526
+    console.log("AUTH EFFECT READY COMPLETE");                            //🟡🟡PATCHED 240526
+
+    console.log("ORCHESTRATION READY STATE:",orchestrationReadyRef.current);    //🟡🟡PATCHED 240526
+
+//}, [user, anonId, isRecovering]);                                       //R-OPT-OUT
+  }, [user, anonId]);                                                     //🟡🟡PATCHED 240526
 
   /* ================= FILE HANDLERS ================ */
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -267,9 +265,6 @@ export default function Home() {
     if (!file || isUploading) return;
 
     console.log("UPLOAD ATTEMPT");                                    //🟡🟡PATCHED 200526
-
-  //if (!user && !anonId) {                                           //R-OPT-OUT 200526
-  //if (!orchestrationReadyRef.current) {                             //R-OPT-OUT 200526
     console.log("ORCHESTRATION READY:", orchestrationReadyRef.current);     //🟡🟡PATCHED 200526
 
     if (loading || !orchestrationReadyRef.current) {                  //🟡🟡PATCHED 200526
@@ -287,8 +282,7 @@ export default function Home() {
     try {
 
       setStatus("Uploading to storage...");                           //🟡🟡PATCHED 200526
-
-    //const filePath = `${Date.now()}-${file.name}`;
+    
       const filePath = user                                           //|-----🟡🟡PATCHED 240526
         ? `${user.id}/${Date.now()}-${file.name}`
         : `${Date.now()}-${file.name}`;                               //-----|🟡🟡PATCHED 240526
@@ -299,7 +293,6 @@ export default function Home() {
         .from("incoming")
         .upload(filePath, file);
 
-    //if (uploadError) throw uploadError;                             //R-OPT-OUT 200526
       if (uploadError) {                                              //|-----🟡🟡PATCHED 200526
 
         console.error("STORAGE UPLOAD ERROR:", uploadError);
@@ -371,7 +364,6 @@ export default function Home() {
 
         setStatus("Saving extracted text...");
 
-      /*await saveExtractedText(resolvedDocKey, text);*/
         await saveExtractedText(supabase, resolvedDocKey, text);        //🟡🟡PATCHED 10/4/26
 
       }
@@ -387,9 +379,6 @@ export default function Home() {
       setFile(null);
 
     } catch (err: any) {
-
-    /*console.error(err);
-      setStatus(`❌ ${err.message || "Unexpected error"}`);*/
 
       console.error(err);                                               //|-----🟡🟡PATCHED 140526 - DOWNLOAD LINK BUTTON
       localStorage.removeItem("active_doc_key");
