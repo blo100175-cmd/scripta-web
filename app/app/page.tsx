@@ -122,7 +122,7 @@ export default function Home() {
 
     if (savedDocKey && !isRecovering) {
 
-      console.log("RECOVERY FLOW START:", savedDocKey);                    //🟡🟡PATCHED 200526
+      console.log("RECOVERY FLOW START:", savedDocKey);                   //🟡🟡PATCHED 200526
 
       if (isRecovering) return;                                           //🟡🟡PATCHED 240536
       
@@ -283,10 +283,13 @@ export default function Home() {
 
       setStatus("Uploading to storage...");                           //🟡🟡PATCHED 200526
     
-      const filePath = user                                           //|-----🟡🟡PATCHED 240526
+    /*const filePath = user                                           //|-----🟡🟡PATCHED 240526
         ? `${user.id}/${Date.now()}-${file.name}`
-        : `${Date.now()}-${file.name}`;                               //-----|🟡🟡PATCHED 240526
+        : `${Date.now()}-${file.name}`;*/                             //-----|🟡🟡PATCHED 240526
 
+      const filePath =
+        `${Date.now()}-${file.name}`;                                 //🟡🟡PATCHED 240526
+      
       console.log("START STORAGE UPLOAD:", filePath);                 //🟡🟡PATCHED 200526
 
       const { error: uploadError } = await supabase.storage

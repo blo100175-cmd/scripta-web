@@ -78,9 +78,71 @@ export function AuthProvider({
 
       if (!mounted) return;
 
-      setUser(user ?? null);            //|-----🟡🟡PATCHED 150526
-      
-      setLoading(false);                                    //🟡🟡PATCHED
+      setUser(user ?? null);                                            //|-----🟡🟡PATCHED 240526
+
+      if (user) {
+
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select(`
+            subscription_tier,
+            subscription_status,
+            grace_period_until
+          `)
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        setProfile(profileData);
+
+        if (profileData?.subscription_tier) {
+
+          setTier(
+            profileData.subscription_tier
+          );
+        }
+
+        const resolved = resolveEffectiveTier({
+
+          subscriptionTier:
+            profileData?.subscription_tier,
+
+          subscriptionStatus:
+            profileData?.subscription_status,
+
+          gracePeriodUntil:
+            profileData?.grace_period_until,
+
+          currentPeriodEnd: null,
+        });
+
+        setEffectiveTier(
+          resolved.effectiveTier
+        );
+
+        setEffectiveStatus(
+          resolved.effectiveStatus
+        );
+
+        const monthKey = new Date()
+          .toISOString()
+          .slice(0, 7);
+
+        const { data: usageData } = await supabase
+          .from("user_usage")
+          .select(`
+            total_pages,
+            page_limit,
+            tier
+          `)
+          .eq("user_id", user.id)
+          .eq("month_key", monthKey)
+          .maybeSingle();
+
+        setUsage(usageData);
+      }
+
+      setLoading(false);                                                //-----|🟡🟡PATCHED 240526
+  
     }
 
     initialize();
@@ -94,7 +156,7 @@ export function AuthProvider({
 
         setUser(session?.user ?? null);
 
-        const activeUser = session?.user ?? null;           //|-----🟡🟡PATCHED 150526
+        const activeUser = session?.user ?? null;                     //|-----🟡🟡PATCHED 150526
 
         if (!activeUser) {
 
@@ -119,7 +181,7 @@ export function AuthProvider({
 
         if (profileData?.subscription_tier) {
           setTier(profileData.subscription_tier);
-        }
+        }                                                            
 
         const resolved = resolveEffectiveTier({
           subscriptionTier:
