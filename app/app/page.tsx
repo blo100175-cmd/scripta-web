@@ -2,6 +2,7 @@
 //SCRIPTA V1.1.140526 - BUG FIXING - DOWNLOAD LINK BUTTON | PREVENT DUPLICATION
 //SCRIPTA V1.1.140526 - BUG FIXING - REMOVE STALE RECOVERY STATE AFTER MANUAL RESET
 //SCRIPTA V1.1.200526 - FUNCTION RECOVERY (R) + AUTH CENTRALIZTION 
+//SCRIPTA V1.1.240526 - DEBUGGING - AUTH UPLOAD FILE MISMATCHED
 "use client";
 
 import { useEffect, useState, useRef } from "react";                      //🟡🟡PATCHED 200526
@@ -266,7 +267,10 @@ export default function Home() {
 
       setStatus("Uploading to storage...");                           //🟡🟡PATCHED 200526
 
-      const filePath = `${Date.now()}-${file.name}`;
+    //const filePath = `${Date.now()}-${file.name}`;
+      const filePath = user                                           //|-----🟡🟡PATCHED 240526
+        ? `${user.id}/${Date.now()}-${file.name}`
+        : `${Date.now()}-${file.name}`;                               //-----|🟡🟡PATCHED 240526
 
       console.log("START STORAGE UPLOAD:", filePath);                 //🟡🟡PATCHED 200526
 
