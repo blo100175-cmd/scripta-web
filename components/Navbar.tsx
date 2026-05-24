@@ -1,27 +1,31 @@
-//SCRIPTA V1.1.150526 - DB-UI SYNCHRONIZATION | GLOBAL AUTH PROVIDER
-//SCRIPTA V1.1.160526 - CLEANUP - resolveEffectiveTier
-//SCRIPTA V1.1.240526 - DEBUGGING - DUPLICATED AUTH OWNERSHIP
+//SCRIPTA V2.260526 - PURE CENTRALIZED AUTH NAVBAR
 "use client";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getSupabase } from "@/lib/supabaseClient";         //🟡🟡PATCHED 9/4/26
-import { useAuth } from "@/components/AuthProvider";        //🟡🟡PATCHED 150526
-import { useRouter } from "next/navigation";
-
+import { useAuth } from "@/components/AuthProvider";
 
 export default function Navbar() {
 
-  const supabase = getSupabase();                           //🟡🟡PATCHED 10/4/26
+  const {
+    user,
+    usage,
+    effectiveTier,
+    logout,
+    initialized,
+  } = useAuth();
 
-  const {user: authUser,loading,usage,effectiveTier,} = useAuth();    //🟡🟡PATCHED 240526
+  const [health, setHealth] =
+    useState<string>("🟢");
 
-  const router = useRouter();                               //🟡🟡PATCHED 15/3/26
-
-  const [health,setHealth] = useState<string>("🟢");
+  /* =========================================
+     USAGE HEALTH
+  ========================================= */
 
   useEffect(() => {
 
     if (!usage || !usage.page_limit) {
+
       setHealth("🟢");
       return;
     }
@@ -41,37 +45,49 @@ export default function Navbar() {
 
   }, [usage]);
 
-  /*-------------- LOGOUT FUNCTION ---------------*/
-  async function logout() {                   //|-----🟡🟡 PATCHED 9/4/26
-    await supabase.auth.signOut();
-    window.location.href = "/";
-  }                               //-----|🟡🟡 PATCHED 9/4/26                              
+  /* =========================================
+     PREVENT HYDRATION FLICKER
+  ========================================= */
 
-  return(
+  if (!initialized) {
 
-/* =========================
-     PAGE UI (JSX)
-========================= */    
+    return (
+      <nav className="navbar">
+
+        <div className="nav-left">
+          <Link href="/" className="logo">
+            <img src="/logo.png" alt="Scripta Logo" />
+          </Link>
+        </div>
+
+      </nav>
+    );
+  }
+
+  return (
+
     <nav className="navbar">
 
       {/* LEFT */}
 
       <div className="nav-left">
+
         <Link href="/" className="logo">
           <img src="/logo.png" alt="Scripta Logo" />
         </Link>
-      </div>
 
+      </div>
 
       {/* RIGHT */}
 
       <div className="nav-right">
 
-        {authUser ? (
+        {user ? (
 
           <>
+
             <span className="account-indicator">
-              {health} {authUser.email} . {effectiveTier}
+              {health} {user.email} . {effectiveTier}
             </span>
 
             <a href="/affiliate">affiliate</a>
@@ -81,12 +97,16 @@ export default function Navbar() {
             <Link href="/pricing">pricing</Link>
             <a href="/#contact">contact</a>
 
-            <button onClick={logout}>logout</button>
+            <button onClick={logout}>
+              logout
+            </button>
+
           </>
 
         ) : (
 
           <>
+
             <Link href="/login">login</Link>
             <a href="/affiliate">affiliate</a>
             <Link href="/app">app</Link>
@@ -94,6 +114,7 @@ export default function Navbar() {
             <a href="/#why-us">why scripta</a>
             <Link href="/pricing">pricing</Link>
             <a href="/#contact">contact</a>
+
           </>
 
         )}
@@ -103,5 +124,4 @@ export default function Navbar() {
     </nav>
 
   );
-
 }

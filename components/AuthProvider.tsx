@@ -1,50 +1,50 @@
-//SCRIPTA V1.150526 - GLOBAL AUTH PROVIDER | FULL-STATE CENTRALIZATION
-//SCRIPTA V1.240526 - DEBUGGING - DUPLICATED AUTH OWNERSHIP
+//SCRIPTA V2.260526 - FULL AUTH CENTRALIZATION REWRITE
 "use client";
-import {createContext,useContext,useEffect,useState,} from "react";
+
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
+
 import { getSupabase } from "@/lib/supabaseClient";
-import { resolveEffectiveTier } from "@/lib/resolveEffectiveTier";  //🟡🟡PATCHED 150526
-
-type AuthContextType = {                                //|-----🟡🟡PATCHED 150526
-  user: any;
-  loading: boolean;
-
-  profile: any;
-  setProfile: React.Dispatch<React.SetStateAction<any>>;
-
-  tier: string;
-  setTier: React.Dispatch<React.SetStateAction<string>>;
-
-  effectiveTier: string;                                //🟡🟡PATCHED 150526
-  effectiveStatus: string;                              //🟡🟡PATCHED 150526
-
-  usage: any;
-  setUsage: React.Dispatch<React.SetStateAction<any>>;
-};                                                      //-----|🟡🟡PATCHED 150526
+import { resolveEffectiveTier } from "@/lib/resolveEffectiveTier";
 
 const supabase = getSupabase();
 
-/*const AuthContext = createContext<AuthContextType>({
-  user: null,
-  loading: true,
-});*/
+type AuthContextType = {
+  user: any;
+  loading: boolean;
+  initialized: boolean;
 
-const AuthContext = createContext<AuthContextType>({    //|-----🟡🟡PATCHED 150526
+  profile: any;
+  usage: any;
+
+  tier: string;
+  effectiveTier: string;
+  effectiveStatus: string;
+
+  refreshAuth: () => Promise<void>;
+  logout: () => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  initialized: false,
 
   profile: null,
-  setProfile: () => {},
+  usage: null,
 
   tier: "free",
-  setTier: () => {},
-
   effectiveTier: "free",
   effectiveStatus: "active",
 
-  usage: null,
-  setUsage: () => {},
-});                                                     //-----|🟡🟡PATCHED 150526
+  refreshAuth: async () => {},
+  logout: async () => {},
+});
 
 export function AuthProvider({
   children,
@@ -53,18 +53,146 @@ export function AuthProvider({
 }) {
 
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
 
-  const [profile, setProfile] = useState<any>(null);    //|-----🟡🟡PATCHED 150526
+  const [profile, setProfile] = useState<any>(null);
+  const [usage, setUsage] = useState<any>(null);
+
   const [tier, setTier] = useState("free");
 
-  const [effectiveTier, setEffectiveTier] =             //🟡🟡PATCHED 150526
-  useState("free");
+  const [effectiveTier, setEffectiveTier] =
+    useState("free");
 
-  const [effectiveStatus, setEffectiveStatus] =         //🟡🟡PATCHED 150526
-  useState("active");
+  const [effectiveStatus, setEffectiveStatus] =
+    useState("active");
 
-  const [usage, setUsage] = useState<any>(null);        //-----|🟡🟡PATCHED 150526
+  const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
+
+  /* =========================================
+     CENTRALIZED HYDRATION
+  ========================================= */
+
+  const clearAuthState = useCallback(() => {
+
+    setUser(null);
+
+    setProfile(null);
+    setUsage(null);
+
+    setTier("free");
+
+    setEffectiveTier("free");
+    setEffectiveStatus("active");
+
+  }, []);
+
+  const hydrateAuthenticatedUser = useCallback(
+    async (activeUser: any) => {
+
+      if (!activeUser) {
+        clearAuthState();
+        return;
+      }
+
+      setUser(activeUser);
+
+      /* ================= PROFILE ================= */
+
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select(`
+          subscription_tier,
+          subscription_status,
+          grace_period_until
+        `)
+        .eq("user_id", activeUser.id)
+        .maybeSingle();
+
+      setProfile(profileData || null);
+
+      const resolved = resolveEffectiveTier({
+
+        subscriptionTier:
+          profileData?.subscription_tier || "free",
+
+        subscriptionStatus:
+          profileData?.subscription_status || "inactive",
+
+        gracePeriodUntil:
+          profileData?.grace_period_until || null,
+
+        currentPeriodEnd: null,
+      });
+
+      setTier(
+        profileData?.subscription_tier || "free"
+      );
+
+      setEffectiveTier(
+        resolved.effectiveTier
+      );
+
+      setEffectiveStatus(
+        resolved.effectiveStatus
+      );
+
+      /* ================= USAGE ================= */
+
+      const monthKey = new Date()
+        .toISOString()
+        .slice(0, 7);
+
+      const { data: usageData } = await supabase
+        .from("user_usage")
+        .select(`
+          total_pages,
+          page_limit,
+          tier
+        `)
+        .eq("user_id", activeUser.id)
+        .eq("month_key", monthKey)
+        .maybeSingle();
+
+      setUsage(usageData || null);
+
+    },
+    [clearAuthState]
+  );
+
+  const refreshAuth = useCallback(async () => {
+
+    try {
+
+      setLoading(true);
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const activeUser = session?.user || null;
+
+      await hydrateAuthenticatedUser(activeUser);
+
+    } catch (error) {
+
+      console.error(
+        "AUTH REFRESH ERROR:",
+        error
+      );
+
+      clearAuthState();
+
+    } finally {
+
+      setLoading(false);
+      setInitialized(true);
+    }
+
+  }, [hydrateAuthenticatedUser, clearAuthState]);
+
+  /* =========================================
+     INITIAL SESSION RESTORE
+  ========================================= */
 
   useEffect(() => {
 
@@ -72,187 +200,103 @@ export function AuthProvider({
 
     async function initialize() {
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
       if (!mounted) return;
 
-      setUser(user ?? null);                                            //|-----🟡🟡PATCHED 240526
-
-      if (user) {
-
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select(`
-            subscription_tier,
-            subscription_status,
-            grace_period_until
-          `)
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        setProfile(profileData);
-
-        if (profileData?.subscription_tier) {
-
-          setTier(
-            profileData.subscription_tier
-          );
-        }
-
-        const resolved = resolveEffectiveTier({
-
-          subscriptionTier:
-            profileData?.subscription_tier,
-
-          subscriptionStatus:
-            profileData?.subscription_status,
-
-          gracePeriodUntil:
-            profileData?.grace_period_until,
-
-          currentPeriodEnd: null,
-        });
-
-        setEffectiveTier(
-          resolved.effectiveTier
-        );
-
-        setEffectiveStatus(
-          resolved.effectiveStatus
-        );
-
-        const monthKey = new Date()
-          .toISOString()
-          .slice(0, 7);
-
-        const { data: usageData } = await supabase
-          .from("user_usage")
-          .select(`
-            total_pages,
-            page_limit,
-            tier
-          `)
-          .eq("user_id", user.id)
-          .eq("month_key", monthKey)
-          .maybeSingle();
-
-        setUsage(usageData);
-      }
-
-      setLoading(false);                                                //-----|🟡🟡PATCHED 240526
-  
+      await refreshAuth();
     }
 
     initialize();
+
+    return () => {
+      mounted = false;
+    };
+
+  }, [refreshAuth]);
+
+  /* =========================================
+     AUTH LISTENER
+  ========================================= */
+
+  useEffect(() => {
+
+    if (!initialized) return;
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
 
-        if (!mounted) return;
+        const activeUser = session?.user || null;
 
-        setUser(session?.user ?? null);
-
-        const activeUser = session?.user ?? null;                     //|-----🟡🟡PATCHED 150526
-
-        if (!activeUser) {
-
-          setProfile(null);
-          setTier("free");
-          setUsage(null);
-
-          return;
-        }
-
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select(`
-            subscription_tier,
-            subscription_status,
-            grace_period_until
-          `)
-          .eq("user_id", activeUser.id)
-          .maybeSingle();
-
-        setProfile(profileData);
-
-        if (profileData?.subscription_tier) {
-          setTier(profileData.subscription_tier);
-        }                                                            
-
-        const resolved = resolveEffectiveTier({
-          subscriptionTier:
-            profileData?.subscription_tier,
-
-          subscriptionStatus:
-            profileData?.subscription_status,
-
-          gracePeriodUntil:
-            profileData?.grace_period_until,
-
-          currentPeriodEnd: null,
-        });
-
-        setEffectiveTier(
-          resolved.effectiveTier
+        console.log(
+          "AUTH STATE CHANGE:",
+          _event,
+          activeUser?.id || "SIGNED_OUT"
         );
 
-        setEffectiveStatus(
-          resolved.effectiveStatus
-        );                                              
-
-        const monthKey = new Date()
-          .toISOString()
-          .slice(0, 7);
-
-        const { data: usageData } = await supabase
-          .from("user_usage")
-          .select(`
-            total_pages,
-            page_limit,
-            tier
-          `)
-          .eq("user_id", activeUser.id)
-          .eq("month_key", monthKey)
-          .maybeSingle();
-
-        setUsage(usageData);                            //-----|🟡🟡PATCHED 1550526
-
+        await hydrateAuthenticatedUser(activeUser);
       }
     );
 
     return () => {
-      mounted = false;
       subscription.unsubscribe();
     };
 
-  }, []);
+  }, [initialized, hydrateAuthenticatedUser]);
+
+  /* =========================================
+     LOGOUT
+  ========================================= */
+
+  async function logout() {
+
+    try {
+
+      setLoading(true);
+
+      clearAuthState();
+
+      await supabase.auth.signOut({
+        scope: "local",
+      });
+
+      localStorage.removeItem("active_doc_key");
+
+      window.location.href = "/";
+
+    } catch (error) {
+
+      console.error(
+        "LOGOUT ERROR:",
+        error
+      );
+
+      setLoading(false);
+    }
+  }
 
   return (
-    <AuthContext.Provider           //|-----🟡🟡PATCHED 150526
+
+    <AuthContext.Provider
       value={{
         user,
         loading,
+        initialized,
 
         profile,
-        setProfile,
+        usage,
 
         tier,
-        setTier,
-
         effectiveTier,
         effectiveStatus,
 
-        usage,
-        setUsage,
-      }}                            //-----|🟡🟡PATCHED 150526
+        refreshAuth,
+        logout,
+      }}
     >
-        
       {children}
     </AuthContext.Provider>
+
   );
 }
 
