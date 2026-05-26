@@ -4,6 +4,7 @@
 //SCRIPTA V1.1.200526 - FUNCTION RECOVERY (R) + AUTH CENTRALIZTION 
 //SCRIPTA V1.1.240526 - DEBUGGING - AUTH UPLOAD FILE MISMATCHED + DUPLICATED AUTH OWNERSHIP
 //SCRIPTA V1.1.250526 - DEBUGGING - STORGE UPLOAD STALL
+//SCRIPTA V1.1.260526 - ORCHESTRATION CLEANUP
 
 "use client";
 import { useEffect, useState, useRef } from "react";                      //🟡🟡PATCHED 200526
@@ -56,7 +57,6 @@ export default function Home() {
   const [activeDocKey, setActiveDocKey] = useState<string | null>(null);  //🟡🟡PATCHED 140526 - BUG FIXING - DOWNLOAD LINK BUTTON
   const [isRecovering, setIsRecovering] = useState(false);                //🟡🟡PATCHED 140526 - PREVENT DUPLICATION
   const [isUploading, setIsUploading] = useState(false);
-  const orchestrationReadyRef = useRef(false);                            //🟡🟡PATCHED 200526
 
   /* ================= AUTH SESSION ================= */
   useEffect(() => {                                                        //|-----🟡🟡PATCHED 200526
@@ -105,10 +105,7 @@ export default function Home() {
         );
       }
 
-      if (                                                          
-        anonId !== storedAnon &&
-        !orchestrationReadyRef.current
-      ) {
+      if (anonId !== storedAnon) {                                        //🟡🟡PATCHED 260526
 
         setAnonId(storedAnon);
 
@@ -176,19 +173,12 @@ export default function Home() {
 
     console.log("AUTH HYDRATION COMPLETE");                               //🟡🟡PATCHED 200526
 
-    if (orchestrationReadyRef.current) {
-      console.log("ORCHESTRATION RE-ENTRY BLOCKED");                      //🟡🟡PATCHED 200526
-      return;
-    }
-
     setStatus("");                                                        //🟡🟡PATCHED 200526
 
     /* =============== AFFILIATE REGISTER ================= */
 
-    if (user && orchestrationReadyRef.current === false) {
-
+    if (user) {                                                           //🟡🟡PATCHED 260526
       console.log("AFFILIATE REGISTRATION CHECK");                        //🟡🟡PATCHED 200526
-
       const refCode = localStorage.getItem("ref_code");
 
       if (refCode) {
@@ -209,14 +199,9 @@ export default function Home() {
       }
     }
 
-    orchestrationReadyRef.current = true;
-    console.log("ORCHESTRATION READY SET TRUE");                          //🟡🟡PATCHED 200526
-
     /* =============== AUTH STATE LISTENER ================= */
     console.log("AUTH EFFECT READY COMPLETE");                            //🟡🟡PATCHED 240526
-
-    console.log("ORCHESTRATION READY STATE:",orchestrationReadyRef.current);    //🟡🟡PATCHED 240526
-
+  
   }, [user, anonId]);                                                     //🟡🟡PATCHED 240526
 
   /* ================= FILE HANDLERS ================ */
@@ -236,15 +221,7 @@ export default function Home() {
 
     if (!file || isUploading) return;
 
-    console.log("UPLOAD ATTEMPT");                                    //🟡🟡PATCHED 200526
-    console.log("ORCHESTRATION READY:", orchestrationReadyRef.current);     //🟡🟡PATCHED 200526
-
-    if (loading || !orchestrationReadyRef.current) {                  //🟡🟡PATCHED 200526
-      setStatus("Waiting for orchestration readiness...");            //🟡🟡PATCHED 200526    
-      setIsUploading(false);                                          //🟡🟡PATCHED 200526
-      console.log("UPLOAD BLOCKED - NOT READY");                      //🟡🟡PATCHED 200526
-      return;
-    }                                                                 //-----|🟡🟡PATCHED 200526
+    console.log("UPLOAD ATTEMPT");                                    //🟡🟡PATCHED 200526                                                              
     
     setIsUploading(true);
 
