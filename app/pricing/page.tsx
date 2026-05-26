@@ -1,17 +1,11 @@
 //SCRIPTA V1.1.140526 - MIGRATION FULL-STATE CENTRALIZATION
 //SCRIPTA V1.1.160526 - MIGRATION FULL-STATE CENTRALIZATION - CLEANUP resolveEffectiveTier
-"use client";
-import { useEffect, useState } from "react";
-import { getSupabase } from "@/lib/supabaseClient";           //🟡🟡PATCHED 9/4/26
-import { useAuth } from "@/components/AuthProvider";          //🟡🟡PATCHED 150526
-/*import { createClient } from "@supabase/supabase-js";*/
-import TaglineStrip from "@/components/TaglineStrip";
-/*import { resolveEffectiveTier } from "@/lib/resolveEffectiveTier";*/    //🟡🟡PATCHED 160526
+//SCRIPTA V1.1.260526 - CLEANUP LEGACY AUTH COUPLING
 
-/*const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);*/
+"use client";
+import { useState } from "react";                                      //🟡🟡PATCHED 260526
+import { useAuth } from "@/components/AuthProvider";                   //🟡🟡PATCHED 150526
+import TaglineStrip from "@/components/TaglineStrip";
 
 type PricingProfile = {
   user_id: string;
@@ -26,100 +20,14 @@ type PricingProfile = {
 
 export default function PricingPage() {
 
-  const supabase = getSupabase();           //🟡🟡PATCHED 10/4/26 
-
-/*const [profile, setProfile] = useState<PricingProfile | null>(null);*/
-/*const [user, setUser] = useState<any>(null);*/
-
-  const {user,loading,profile,tier,usage,effectiveTier,effectiveStatus,} = useAuth();        //🟡🟡PATCHED 150526
-
-/*const [loading, setLoading] = useState(true);*/
+  const {user,loading,profile,effectiveTier,effectiveStatus,} = useAuth();    //🟡🟡PATCHED 150526
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-
-
-  /* =========================
-     LOAD PROFILE (OPTIONAL)
-  ========================= */
-
-/*useEffect(() => {
-
-  /*async function loadProfile() {
-
-      try {
-
-      /*const { data: { user } } = await supabase.auth.getUser();*/
-      /*setUser(user);*/
-
-      /*if (!user) {
-          setLoading(false);
-          return;
-        }*/
-
-      /*const res = await fetch("/api/get-profile", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: user.id }),
-        });
-
-        if (!res.ok) throw new Error("Failed to load profile");
-
-        const data = await res.json();
-        setProfile(data);*/
-
-    /*} catch (err: any) {
-
-        setError(err.message);
-
-      } finally {
-
-      setLoading(false);
-
-      }
-
-    }*/
-
-  /*loadProfile();
-
-  }, []);*/
-
 
   /* =========================
      STRIPE PLAN UPGRADE
   ========================= */
-/*async function upgrade(plan: string) {
-    try {
-      setProcessing(true);
-
-      // Get current logged-in user
-      const { data: { user } } = await supabase.auth.getUser();
-
-      const res = await fetch("/api/create-checkout-session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          userId: user?.id ?? null,
-          plan
-        })
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to create checkout session");
-      }
-
-      const data = await res.json();
-      window.location.href = data.url;
-    }
-    catch (err: any) {
-      alert(err.message);
-      setProcessing(false);
-    }
-  }*/
-
-  async function upgrade(plan: string) {          //|-----🟡🟡 PATCHED
+  async function upgrade(plan: string) {                                //|-----🟡🟡 PATCHED
 
     if (!user) {
       alert("Please register or login before subscribing.");
@@ -152,7 +60,7 @@ export default function PricingPage() {
       alert(err.message);
       setProcessing(false);
     }
-  }                                 //-----|🟡🟡 
+  }                                                                     //-----|🟡🟡 
 
   /* =================================
      SWITCH-TO-FREE (for expired user)
@@ -226,9 +134,7 @@ export default function PricingPage() {
 
       alert(err.message);
       setProcessing(false);
-
     }
-
   }
 
   /* =========================
@@ -243,7 +149,6 @@ export default function PricingPage() {
     return <div style={{ padding: 40 }}>Error: {error}</div>;
   }
 
-
   /* =========================
      PROFILE STATE
   ========================= */
@@ -252,42 +157,17 @@ export default function PricingPage() {
     ? new Date(profile.current_period_end).toLocaleDateString()
     : "N/A";
 
-/*const resolvedAccess = resolveEffectiveTier({          //|-----🟡🟡PATCHED 160526
-    subscriptionTier:
-      profile?.subscription_tier || "free",
-    subscriptionStatus:
-      profile?.subscription_status || "expired",
-    currentPeriodEnd:
-      profile?.current_period_end || null,
-    gracePeriodUntil:
-      (profile as any)?.grace_period_until || null,
-  });/                                                    //-----|🟡🟡PATCHED 160526
-
-  const effectiveTier =
-    resolvedAccess.effectiveTier;                        //🟡🟡PATCHED 120526
-
-/*const isActive =
-    profile?.subscription_status === "active" &&
-    (!profile?.current_period_end ||
-      new Date(profile.current_period_end) > new Date());*/
-
-/*const isActive =                                       //|-----🟡🟡PATCHED 120526
-    resolvedAccess.effectiveStatus === "active" ||
-    resolvedAccess.effectiveStatus === "grace"; */         //-----|🟡🟡PATCHED 120526
-
-    const isActive =                                       //|-----🟡🟡PATCHED 160526
-    effectiveTier === "active" ||
-    effectiveStatus === "grace";                           //-----|🟡🟡PATCHED 160526
+    const isActive =                                      
+      effectiveStatus === "active" ||
+      effectiveStatus === "grace";                                      //🟡🟡ATCHED 260526
 
   const displayStatus =
     profile?.cancel_at_period_end && isActive
       ? "Active (Cancels at period end)"
       : profile?.subscription_status; 
 
-/*const isExpired = profile?.subscription_status === "expired";*/   
   const isExpired =
-  /*resolvedAccess.effectiveStatus === "expired";*/        //🟡🟡PATCHED 120526
-    effectiveStatus === "expired";                         //🟡🟡PATCHED 160526
+    effectiveStatus === "expired";                                      //🟡🟡PATCHED 160526
 
   /* =========================
      PAGE UI (JSX)
@@ -351,18 +231,15 @@ export default function PricingPage() {
                   return;
                 }
 
-                /* expired paid user → switch to free */
                 if (isExpired && effectiveTier !== "free") {
                   switchToFree();
                   return;
                 }
 
-                /* already active free */
                 if (effectiveTier === "free" && !isExpired) {
                   return;
                 }
 
-                /* fallback */
                 window.location.href = "/app";
 
               }}
@@ -377,11 +254,11 @@ export default function PricingPage() {
                     : "Free Plan"}                        
             </button>
           </div>
-
+          
           {/* LITE */}
           <div className="pricing-card">
             <h2>LITE</h2>
-            <p className="price">$3.99 / month</p>
+            <p className="price">$3.99 / month</p>           
             <ul>
               <li>100 pages per month</li>
               <li>No watermark</li>

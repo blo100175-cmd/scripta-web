@@ -1,28 +1,26 @@
-//SCRIPTA V2.260526 - PURE CENTRALIZED AUTH NAVBAR
+//SCRIPTA V2.250526 - PURE CENTRALIZED AUTH NAVBAR
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import Link from "next/link";                               
 import { useAuth } from "@/components/AuthProvider";
 
 export default function Navbar() {
 
   const {
-    user,
-    usage,
+    user,                                   
     effectiveTier,
     logout,
-    initialized,
+    loading,                
   } = useAuth();
 
-  const [health, setHealth] =
+/*const [health, setHealth] =
     useState<string>("🟢");
 
   /* =========================================
      USAGE HEALTH
   ========================================= */
 
-  useEffect(() => {
+/*useEffect(() => {
 
     if (!usage || !usage.page_limit) {
 
@@ -43,13 +41,13 @@ export default function Navbar() {
       setHealth("🟢");
     }
 
-  }, [usage]);
+  }, [usage]);*/
 
   /* =========================================
      PREVENT HYDRATION FLICKER
   ========================================= */
 
-  if (!initialized) {
+  if (loading) {
 
     return (
       <nav className="navbar">
@@ -87,7 +85,7 @@ export default function Navbar() {
           <>
 
             <span className="account-indicator">
-              {health} {user.email} . {effectiveTier}
+              {user.email} . {effectiveTier}
             </span>
 
             <a href="/affiliate">affiliate</a>

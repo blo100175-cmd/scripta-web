@@ -1,10 +1,11 @@
 //SCRIPTA V1.1.160526 - FULL-STATE CENTRALIZATION MIGRATION - CLEANUP
+//SCRIPTA V1.1.250526 - ARCHITECTURE FALLOUT CLEANUP 
 "use client";
 import { useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 /*import { resolveEffectiveTier } from "@/lib/resolveEffectiveTier";*/
-import { useAuth } from "@/components/AuthProvider";        //🟡🟡PATCHED 160526
+import { useAuth } from "@/components/AuthProvider";                   //🟡🟡PATCHED 160526
 
 /*type Affiliate = {
   referral_code: string;
@@ -12,12 +13,12 @@ import { useAuth } from "@/components/AuthProvider";        //🟡🟡PATCHED 16
   total_referrals: number;
 };*/
 
-type Affiliate = {                  //|-----🟡🟡PATCHED AFFILIATE 110526
+type Affiliate = {                                                     //|-----🟡🟡PATCHED AFFILIATE 110526
   id: string;
   referral_code: string;
   total_earned: number;
   total_referrals: number;
-};                                  //-----|🟡🟡PATCHED 110526
+};                                                                     //-----|🟡🟡PATCHED 110526
 
 type Referral = {
   referred_user_id: string;
@@ -26,7 +27,7 @@ type Referral = {
   created_at: string;
 };
 
-//SAA GENERATOR ======================================             //|-----🟡🟡PATCHED AFFILIATE 120526
+//SAA GENERATOR ======================================                 //|-----🟡🟡PATCHED AFFILIATE 120526
 function generateSAA() {            
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
@@ -42,17 +43,9 @@ function generateSAA() {
 }                                   //-----|🟡🟡PATCHED 120526
 
 export default function AffiliatePage() {
-  const {user,loading,profile,tier,usage,effectiveTier,effectiveStatus,} = useAuth();
-/*const [loading, setLoading] = useState(true);*/
-  const [affiliate, setAffiliate] = useState<Affiliate | null>(null);
-/*const [tier, setTier] = useState<string>("free");*/              //|-----🟡🟡PATCHED 160526
-/*const [status, setStatus] = useState<string>("inactive");*/      //|-----🟡🟡PATCHED 160526
-  
-/*const [effectiveTier, setEffectiveTier] =                       
-    useState<string>("free");*/                                    //🟡🟡PATCHED 160526
+  const {user,loading,effectiveTier,effectiveStatus,} = useAuth();     //🟡🟡PATCHED 250526
 
-/*const [effectiveStatus, setEffectiveStatus] =
-    useState<string>("expired");*/                                 //🟡🟡PATCHED 160526
+  const [affiliate, setAffiliate] = useState<Affiliate | null>(null);
   
   const [referrals, setReferrals] = useState<Referral[]>([]);
 
@@ -60,59 +53,7 @@ export default function AffiliatePage() {
     async function loadData() {
       const supabase = getSupabase();
 
-      // 🔐 GET CURRENT USER =========================                                      
-    /*const {
-        data: { user },
-      } = await supabase.auth.getUser();*/
-
-    /*if (loading) {                                              //🟡🟡PATCHED 160526
-        return;
-      }
-
-    /*if (!user) {
-        setLoading(false);
-        return;
-      }*/
-
-      // LOADD PROFILE DATA ===========================           //|-----🟡🟡PATCHED 160526
-    /*const { data: profile } = await supabase
-        .from("profiles")
-      /*.select("subscription_tier, subscription_status")*/
-      /*.select(`                                 
-          subscription_tier,
-          subscription_status,
-          grace_period_until
-        `)
-        .eq("user_id", user.id)
-        .maybeSingle();*/                                         //-----|🟡🟡PATCHED 160526
-
-    /*if (profile) {                                      //|-----🟡🟡PATCHED 160526
-      /*setTier(profile.subscription_tier || "free");*/ 
-      /*const { data: subscription } = await supabase
-          .from("subscriptions")
-          .select("current_period_end")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        const resolved = resolveEffectiveTier({
-          subscriptionTier:
-            profile.subscription_tier || "free",
-          subscriptionStatus:
-            profile.subscription_status || "expired",
-          currentPeriodEnd:
-            subscription?.current_period_end || null,
-          gracePeriodUntil:
-            profile.grace_period_until || null,
-        });
-
-        setTier(resolved.effectiveTier);
-        setStatus(resolved.effectiveStatus);
-
-        setEffectiveTier(resolved.effectiveTier);
-        setEffectiveStatus(
-          resolved.effectiveStatus
-        );
-      }*/                                                 //-----|🟡🟡PATCHED 160526
+      if (!user) return;
 
       // 📊 GET AFFILIATE INFO =======================
       const { data: affiliateData } = await supabase
@@ -142,9 +83,9 @@ export default function AffiliatePage() {
     }
 
     loadData();
-  }, []);
+  }, [user]);                                                          //🟡🟡PATCHED 250526
 
-  // AFFILIATE ACTIVATION FUNCTION ===================          //|-----🟡🟡PATCHED AFFILIATE 120526
+  // AFFILIATE ACTIVATION FUNCTION ===================                 //|-----🟡🟡PATCHED AFFILIATE 120526
   async function activateAffiliate() {          
 
     const supabase = getSupabase();
@@ -176,7 +117,6 @@ export default function AffiliatePage() {
     return <div className="p-6">Loading affiliate dashboard...</div>;
   }
 
-  //=========== JSX ==================================
   //GUEST GATE =======================================            //|-----🟡🟡PATCHED AFFILIATE 120526
   if (!affiliate && effectiveTier === "free") {
     return (
@@ -200,11 +140,6 @@ export default function AffiliatePage() {
     );
   }                                         //-----|🟡🟡PATCHED 120526
 
-  //FREE/LITE UPGRADE GATE ===============  //|-----🟡🟡PATCHED AFFILIATE 120526
-/*if (
-    !affiliate &&
-    (effectiveTier === "lite" || effectiveStatus === "expired")
-  ) {*/
   if (                                      //|-----🟡🟡PATCHED AFFILIATE 140526
     !affiliate &&
     (

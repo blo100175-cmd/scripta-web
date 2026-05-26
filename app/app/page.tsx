@@ -3,6 +3,8 @@
 //SCRIPTA V1.1.140526 - BUG FIXING - REMOVE STALE RECOVERY STATE AFTER MANUAL RESET
 //SCRIPTA V1.1.200526 - FUNCTION RECOVERY (R) + AUTH CENTRALIZTION 
 //SCRIPTA V1.1.240526 - DEBUGGING - AUTH UPLOAD FILE MISMATCHED + DUPLICATED AUTH OWNERSHIP
+//SCRIPTA V1.1.250526 - DEBUGGING - STORGE UPLOAD STALL
+
 "use client";
 import { useEffect, useState, useRef } from "react";                      //🟡🟡PATCHED 200526
 import { extractText, getDocumentProxy } from "unpdf";
@@ -211,40 +213,10 @@ export default function Home() {
     console.log("ORCHESTRATION READY SET TRUE");                          //🟡🟡PATCHED 200526
 
     /* =============== AUTH STATE LISTENER ================= */
-
-  /*const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event) => {
-
-      console.log("AUTH STATE CHANGE:", _event);                          //🟡🟡PATCHED 200526
-      console.log("AUTH LISTENER USER:", user?.id || "ANON");             //🟡🟡PATCHED 200526
-      
-      if (loading) {                                                      //|-----🟡🟡PATCHED 200526
-        return;
-      }                                                                   //-----|🟡🟡PATCHED 200526
-
-      console.log("PASSIVE AUTH LISTENER ACTIVE");                        //🟡🟡PATCHED 200526
-
-      // reset pipeline state on auth change
-      setFile(null);
-      setDocStatus(null);
-      setPdfUrl(null);
-      setStatus("");
-      setActiveDocKey(null);
-
-      localStorage.removeItem("active_doc_key");
-    });
-
-    console.log("AUTH EFFECT READY COMPLETE");                            //R-OPT-OUT
-    console.log("ORCHESTRATION READY STATE:", orchestrationReadyRef.current);   //R-OPT-OUT
-    
-    return () => subscription.unsubscribe();*/
-
     console.log("AUTH EFFECT READY COMPLETE");                            //🟡🟡PATCHED 240526
 
     console.log("ORCHESTRATION READY STATE:",orchestrationReadyRef.current);    //🟡🟡PATCHED 240526
 
-//}, [user, anonId, isRecovering]);                                       //R-OPT-OUT
   }, [user, anonId]);                                                     //🟡🟡PATCHED 240526
 
   /* ================= FILE HANDLERS ================ */
@@ -282,29 +254,47 @@ export default function Home() {
     try {
 
       setStatus("Uploading to storage...");                           //🟡🟡PATCHED 200526
-    
-    /*const filePath = user                                           //|-----🟡🟡PATCHED 240526
-        ? `${user.id}/${Date.now()}-${file.name}`
-        : `${Date.now()}-${file.name}`;*/                             //-----|🟡🟡PATCHED 240526
+         
+      const sanitizedFileName =                                     
+        file.name.replace(/\s+/g, "-");                               //🟡🟡PATCHED 250526
 
       const filePath =
-        `${Date.now()}-${file.name}`;                                 //🟡🟡PATCHED 240526
-      
+        `${crypto.randomUUID()}-${Date.now()}-${sanitizedFileName}`;  //🟡🟡PATCHED 250526
+
       console.log("START STORAGE UPLOAD:", filePath);                 //🟡🟡PATCHED 200526
 
-      const { error: uploadError } = await supabase.storage
-        .from("incoming")
-        .upload(filePath, file);
+      const uploadStartTime = performance.now();                      //|-----🟡🟡PATCHED 250526
 
-      if (uploadError) {                                              //|-----🟡🟡PATCHED 200526
+      const uploadResult = await supabase.storage
+          .from("incoming")
+          .upload(
+            filePath,
+            file,
+            {
+              upsert: false,
+            }
+          );
 
-        console.error("STORAGE UPLOAD ERROR:", uploadError);
+      const uploadEndTime = performance.now();
 
+      console.log(
+        "STORAGE RESULT:",uploadResult);
+
+      console.log(
+        "UPLOAD DURATION:",(uploadEndTime - uploadStartTime).toFixed(2),
+        "ms"
+      );
+
+      if (uploadResult.error) {
+        console.error(
+          "STORAGE UPLOAD ERROR:",uploadResult.error);
         setStatus("Storage upload failed");
         setIsUploading(false);
+        throw uploadResult.error;
+      }
 
-        throw uploadError;
-      }                                                               //-----|🟡🟡PATCHED 200526
+      console.log(
+        "STORAGE OBJECT PATH:",uploadResult.data?.path);              //-----|🟡🟡PATCHED 250526
 
       setStatus("Registering file...");
       console.log("BEGIN DB REGISTRATION");                           //🟡🟡PATCHED 200526
