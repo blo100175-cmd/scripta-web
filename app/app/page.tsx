@@ -242,6 +242,9 @@ export default function Home() {
 
       const uploadStartTime = performance.now();                      //|-----🟡🟡PATCHED 250526
 
+      console.log("USER:", user);
+      console.log("AUTH LOADING:", loading);
+
       const uploadResult = await supabase.storage
           .from("incoming")
           .upload(
@@ -251,6 +254,8 @@ export default function Home() {
               upsert: false,
             }
           );
+      
+      console.log("UPLOAD RETURNED");
 
       const uploadEndTime = performance.now();
 
