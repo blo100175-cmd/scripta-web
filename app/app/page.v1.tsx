@@ -1,5 +1,3 @@
-//scripta V1.050626.001 - Recovery Foundation Build
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -22,8 +20,7 @@ async function extractPdfText(file: File): Promise<string> {
 }
 
 /* ------------------ RPC SAVE TEXT ------------------ */
-//async function saveExtractedText(docKey: string, text: string) {                      //OPT-OUT 050626
-async function saveExtractedText(supabase: any, docKey: string, text: string) {         //🟡🟡PATCHED 050626
+async function saveExtractedText(docKey: string, text: string) {
   const { error } = await supabase.rpc("save_extracted_text", {
     p_doc_key: docKey,
     p_text: text,
@@ -49,8 +46,6 @@ export default function Home() {
   >(null);
 
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [activeDocKey, setActiveDocKey] = useState<string | null>(null);                //🟡🟡PATCHED 050626
-
   const [isUploading, setIsUploading] = useState(false);
 
   /* ---------------- AUTH SESSION ---------------- */
@@ -112,10 +107,7 @@ export default function Home() {
 
       setStatus("Uploading file...");
 
-    //const filePath = `${Date.now()}-${file.name}`;                                    //OPT-OUT 050626
-      const sanitizedFileName = file.name.replace(/\s+/g, "-");                         //🟡🟡PATCHED 050626
-
-      const filePath = `${crypto.randomUUID()}-${Date.now()}-${sanitizedFileName}`;     //🟡🟡PATCHED 050626
+      const filePath = `${Date.now()}-${file.name}`;
 
       const { error: uploadError } = await supabase.storage
         .from("incoming")
@@ -155,7 +147,6 @@ export default function Home() {
 
         if (data?.status === "registered" && data?.doc_key) {
           resolvedDocKey = data.doc_key;
-          localStorage.setItem("active_doc_key", resolvedDocKey as string);             //🟡🟡PATCHED 050626      
           break;
         }
 
@@ -176,7 +167,7 @@ export default function Home() {
 
         setStatus("Saving extracted text...");
 
-        await saveExtractedText(supabase, resolvedDocKey, text);                        //🟡🟡PATCHED 050626                 
+        await saveExtractedText(resolvedDocKey, text);
 
       }
 
@@ -189,10 +180,6 @@ export default function Home() {
     } catch (err: any) {
 
       console.error(err);
-
-      localStorage.removeItem("active_doc_key");                                        //🟡🟡PATCHED 050626
-      setActiveDocKey(null);                                                            //🟡🟡PATCHED 050626
-
       setStatus(`❌ ${err.message || "Unexpected error"}`);
 
     } finally {
@@ -252,7 +239,6 @@ export default function Home() {
       if (row.status === "COMPLETED") {
         setDocStatus("COMPLETED");
         setPdfUrl(row.pdf_url);
-        localStorage.removeItem("active_doc_key");                                      //🟡🟡PATCHED 050626
         setIsUploading(false);
         return;
       }
