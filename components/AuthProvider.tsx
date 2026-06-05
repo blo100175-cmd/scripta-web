@@ -1,5 +1,6 @@
-//SCRIPTA V2.240526 - FULL AUTH CENTRALIZATION REWRITE
-//SCRIPTA V2.250526 - NAVBAR - DB SYNCHRONIZATION 
+//SCRIPTA V1.240526 - FULL AUTH CENTRALIZATION REWRITE
+//SCRIPTA V1.250526 - NAVBAR - DB SYNCHRONIZATION 
+//scripta V1.050626.001 - Recovery Foundation Build - Navbar synchronization
 "use client";
 
 import {
@@ -104,6 +105,16 @@ export function AuthProvider({
 
       setProfile(profileData || null);
 
+      console.log("PROFILE DATA:", profileData);                     //|-----🟡🟡PATCHED 050626
+      console.log(
+        "PROFILE TIER:",
+        profileData?.subscription_tier
+      );
+      console.log(
+        "PROFILE STATUS:",
+        profileData?.subscription_status
+      );                                                             //-----|🟡🟡PATCHED 050626
+
       const resolved = resolveEffectiveTier({
 
         subscriptionTier:
@@ -118,6 +129,8 @@ export function AuthProvider({
         currentPeriodEnd: null,
       });
 
+      console.log("RESOLVED:", resolved);                             //🟡🟡PATCHED 050626
+
       setTier(
         profileData?.subscription_tier || "free"
       );
@@ -125,6 +138,8 @@ export function AuthProvider({
       setEffectiveTier(
         resolved.effectiveTier
       );
+
+      console.log("SETTING EFFECTIVE TIER:",resolved.effectiveTier);  //🟡🟡PATCHED 050626
 
       setEffectiveStatus(
         resolved.effectiveStatus
@@ -134,95 +149,15 @@ export function AuthProvider({
     []
   );                                                                 //-----|🟡🟡PATCHED 250526
 
-/*const hydrateAuthenticatedUser = useCallback(
-    async (activeUser: any) => {
-
-      if (!activeUser) {
-        clearAuthState();
-        return;
-      }
-
-      setUser(activeUser);
-      await refreshProfile(activeUser);*/                            //🟡🟡PATCHED 250526
-
-      /* ================= PROFILE ================= */
-
-    /*const { data: profileData } = await supabase
-        .from("profiles")
-        .select(`
-          subscription_tier,
-          subscription_status,
-          grace_period_until
-        `)
-        .eq("user_id", activeUser.id)
-        .maybeSingle();
-
-      setProfile(profileData || null);
-
-      const resolved = resolveEffectiveTier({
-
-        subscriptionTier:
-          profileData?.subscription_tier || "free",
-
-        subscriptionStatus:
-          profileData?.subscription_status || "inactive",
-
-        gracePeriodUntil:
-          profileData?.grace_period_until || null,
-
-        currentPeriodEnd: null,
-      });
-
-      setTier(
-        profileData?.subscription_tier || "free"
-      );
-
-      setEffectiveTier(
-        resolved.effectiveTier
-      );
-
-      setEffectiveStatus(
-        resolved.effectiveStatus
-      );*/                                                           //🔴🔴R-OPT-OUT 250526
-
-
-      /* ================= USAGE ================= */
-
-    /*const monthKey = new Date()
-        .toISOString()
-        .slice(0, 7);
-
-      const { data: usageData } = await supabase
-        .from("user_usage")
-        .select(`
-          total_pages,
-          page_limit,
-          tier
-        `)
-        .eq("user_id", activeUser.id)
-        .eq("month_key", monthKey)
-        .maybeSingle();
-
-      setUsage(usageData || null);*/                                 //🔴🔴R-OPT-OUT 250526
-
-  /*},
-    [clearAuthState]
-  );*/                                                               //🔴🔴R-OPT-OUT 250526
-
   const refreshAuth = useCallback(async () => {
 
     try {
 
       setLoading(true);
-    //setInitialized(false);                                         //🔴🔴R-OPT-OUT 250526
 
       const {
         data: { session },
       } = await supabase.auth.getSession();
-
-    //const activeUser = session?.user || null;                      //🔴🔴R-OPT-OUT 250526
-
-    //await hydrateAuthenticatedUser(activeUser);                    //🔴🔴R-OPT-OUT 250526
 
       const activeUser =                                             //|-----🟡🟡PATCHED 250526     
         session?.user || null;
@@ -246,10 +181,8 @@ export function AuthProvider({
     } finally {
 
       setLoading(false);
-    //setInitialized(true);                                          //🔴🔴R-OPT-OUT 250526
     }
 
-//}, [hydrateAuthenticatedUser, clearAuthState]);                    //🔴🔴R-OPT-OUT 250526
     }, [clearAuthState, refreshProfile]);                            //🟡🟡PATCHED 250526
 
   /* =========================================
