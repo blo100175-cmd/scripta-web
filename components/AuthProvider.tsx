@@ -1,6 +1,6 @@
 //SCRIPTA V1.240526 - FULL AUTH CENTRALIZATION REWRITE
 //SCRIPTA V1.250526 - NAVBAR - DB SYNCHRONIZATION 
-//scripta V1.050626.001 - Recovery Foundation Build - Navbar synchronization
+//scripta V1.050626.002 - AuthProvider diagnostics
 "use client";
 
 import {
