@@ -159,6 +159,9 @@ export function AuthProvider({
         data: { session },
       } = await supabase.auth.getSession();
 
+      console.log("SESSION:", session);                              //🟡🟡PATCHED 050626
+      console.log("SESSION USER:", session?.user?.id);               //🟡🟡PATCHED 050626
+
       const activeUser =                                             //|-----🟡🟡PATCHED 250526     
         session?.user || null;
 
@@ -224,6 +227,8 @@ export function AuthProvider({
 
         const activeUser = session?.user || null;
 
+        console.log("ACTIVE USER:", activeUser);                      //🟡🟡PATCHED 050626
+
         console.log(
           "AUTH STATE CHANGE:",
           _event,
@@ -236,12 +241,21 @@ export function AuthProvider({
           return;
         }
 
-        if (_event === "SIGNED_IN") {
+        if (                                                          //|-----🟡🟡PATCHED 050526
+          _event === "SIGNED_IN" ||
+          _event === "INITIAL_SESSION" ||
+          _event === "TOKEN_REFRESHED" ||
+          _event === "USER_UPDATED"
+        ) {
           setUser(activeUser);
-          await refreshProfile(activeUser);
+
+          if (activeUser) {
+            await refreshProfile(activeUser);
+          }                                                           
+
           return;
         }                                                             
-      }                                                               //-----|🟡🟡PATCHED 250526
+      }                                                               //-----|🟡🟡PATCHED 050526
     );
 
     return () => {
