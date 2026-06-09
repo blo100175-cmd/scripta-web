@@ -270,7 +270,7 @@ export function AuthProvider({
   /* =========================================
       DERIVED AUTH VALUES
   ========================================= */
-  const resolved =
+/*const resolved =
     resolveEffectiveTier({
 
       subscriptionTier:
@@ -287,7 +287,16 @@ export function AuthProvider({
 
       currentPeriodEnd: null,
 
-    });
+    });*/
+  
+  const resolved = profile
+    ? resolveEffectiveTier({
+        subscriptionTier: profile.subscription_tier || "free",
+        subscriptionStatus: profile.subscription_status || "inactive",
+        gracePeriodUntil: profile.grace_period_until || null,
+        currentPeriodEnd: null,
+      })
+    : { effectiveTier: "free", effectiveStatus: "active", inGracePeriod: false };
 
   const tier =
     profile?.subscription_tier ||

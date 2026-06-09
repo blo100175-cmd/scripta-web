@@ -114,7 +114,8 @@ export default function Home() {
     if (!file || isUploading) return;
 
     // Re-validate session before upload
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
+
     if (!session && !anonId) {
       setStatus("❌ Session error. Please refresh the page.");
       return;

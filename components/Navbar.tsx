@@ -7,6 +7,7 @@ import { useAuth } from "@/components/AuthProvider";
 export default function Navbar() {
 
   const {
+    profile,
     user,                                   
     effectiveTier,
     logout,
@@ -55,7 +56,7 @@ export default function Navbar() {
           <>
 
             <span className="account-indicator">
-              {user.email} . {effectiveTier}
+              {user.email} . {profile ? effectiveTier : "..."}
             </span>
 
             <a href="/affiliate">affiliate</a>
