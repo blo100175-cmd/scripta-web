@@ -3,19 +3,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-//import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import { extractText, getDocumentProxy } from "unpdf";
-import TaglineStrip from "@/components/TaglineStrip";                     //🟡🟡PATCHED 16/3/26
-import { getSupabase } from "@/lib/supabaseClient";                       //🟡🟡PATCHED 090626
-import { useAuth } from "@/components/AuthProvider";                      //🟡🟡PATCHED 090626
-
-const supabase = getSupabase();                                           //🟡🟡PATCHED 090626
+import TaglineStrip from "@/components/TaglineStrip";  //🟡🟡PATCHED 16/3/26
 
 /* ------------------ SUPABASE CLIENT ------------------ */
-/*const supabase = createClient(
+const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);/*
+);
 
 /* ------------------ PDF EXTRACTION ------------------ */
 async function extractPdfText(file: File): Promise<string> {
@@ -39,11 +35,9 @@ async function saveExtractedText(supabase: any, docKey: string, text: string) { 
 export default function Home() {
 
   /* ---------------- AUTH ---------------- */
-//const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
   const [anonId, setAnonId] = useState<string | null>(null);
-//const [authLoading, setAuthLoading] = useState(true);*/
-
-  const { user } = useAuth();                                             //🟡🟡PATCHED 090626     
+  const [authLoading, setAuthLoading] = useState(true);
 
   /* -------------- PIPELINE STATE -------------- */
   const [file, setFile] = useState<File | null>(null);
@@ -72,7 +66,7 @@ export default function Home() {
 
     setAnonId(storedAnon);
 
-    /* ===== AUTH SESSION ===== 
+    /* ===== AUTH SESSION ===== */
     supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null);
       setAuthLoading(false);
@@ -92,7 +86,7 @@ export default function Home() {
 
     });
 
-    return () => subscription.unsubscribe();*/
+    return () => subscription.unsubscribe();
 
   }, []);
 

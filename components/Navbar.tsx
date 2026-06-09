@@ -13,36 +13,6 @@ export default function Navbar() {
     loading,                
   } = useAuth();
 
-/*const [health, setHealth] =
-    useState<string>("🟢");
-
-  /* =========================================
-     USAGE HEALTH
-  ========================================= */
-
-/*useEffect(() => {
-
-    if (!usage || !usage.page_limit) {
-
-      setHealth("🟢");
-      return;
-    }
-
-    const ratio =
-      usage.total_pages / usage.page_limit;
-
-    if (ratio >= 1) {
-      setHealth("🔴");
-    }
-    else if (ratio >= 0.8) {
-      setHealth("🟡");
-    }
-    else {
-      setHealth("🟢");
-    }
-
-  }, [usage]);*/
-
   /* =========================================
      PREVENT HYDRATION FLICKER
   ========================================= */

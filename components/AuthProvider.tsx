@@ -2,8 +2,8 @@
 //SCRIPTA V1.250526 - NAVBAR - DB SYNCHRONIZATION 
 //scripta V1.050626.002 - AuthProvider diagnostics
 //scripta v1.090626.003 - AuthProvider Stabilization Build
-"use client";
 
+"use client";
 import {
   createContext,
   useContext,
@@ -205,12 +205,10 @@ export function AuthProvider({
         ) {
 
           if (activeUser) {
-
+            setLoading(true);                                       //🟡🟡PATCHED 090626
             setUser(activeUser);
-
-            await refreshProfile(
-              activeUser
-            );
+            await refreshProfile(activeUser);
+            setLoading(false);                                      //🟡🟡PATCHED 090626
           }
 
           return;
