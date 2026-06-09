@@ -1,7 +1,6 @@
 //SCRIPTA V1.240526 - FULL AUTH CENTRALIZATION REWRITE
 //SCRIPTA V1.250526 - NAVBAR - DB SYNCHRONIZATION 
 //scripta V1.050626.002 - AuthProvider diagnostics
-//scripta v1.090626.003 - AuthProvider Stabilization Build
 "use client";
 
 import {
@@ -20,8 +19,10 @@ const supabase = getSupabase();
 type AuthContextType = {
   user: any;
   loading: boolean;
+//initialized: boolean;                                              //🔴🔴R-OPT-OUT 250526
 
   profile: any;
+//usage: any;                                                        //🔴🔴R-OPT-OUT 250526
 
   tier: string;
   effectiveTier: string;
@@ -34,8 +35,10 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+//initialized: false,                                                //🔴🔴R-OPT-OUT 250526
 
   profile: null,
+//usage: null,                                                       //🔴🔴R-OPT-OUT 250526
 
   tier: "free",
   effectiveTier: "free",
@@ -51,33 +54,46 @@ export function AuthProvider({
   children: React.ReactNode;
 }) {
 
-  /* =========================================
-      AUTH STATE
-  ========================================= */
   const [user, setUser] = useState<any>(null);
 
   const [profile, setProfile] = useState<any>(null);
+//const [usage, setUsage] = useState<any>(null);                     //🔴🔴R-OPT-OUT 250526
+
+  const [tier, setTier] = useState("free");
+
+  const [effectiveTier, setEffectiveTier] =
+    useState("free");
+
+  const [effectiveStatus, setEffectiveStatus] =
+    useState("active");
 
   const [loading, setLoading] = useState(true);
+//const [initialized, setInitialized] = useState(false);             //🔴🔴R-OPT-OUT 250526
 
   /* =========================================
-      CLEAR AUTH STATE
+     CENTRALIZED HYDRATION
   ========================================= */
+
   const clearAuthState = useCallback(() => {
+
     setUser(null);
+
     setProfile(null);
+  //setUsage(null);                                                  //🔴🔴R-OPT-OUT 250526
+
+    setTier("free");
+
+    setEffectiveTier("free");
+    setEffectiveStatus("active");
+
   }, []);
 
-  /* =========================================
-      LOAD PROFILE
-  ========================================= */
-  const refreshProfile = useCallback(
-
+  const refreshProfile = useCallback(                                //|-----🟡🟡PATCHED 250526
     async (activeUser: any) => {
 
       if (!activeUser) return;
 
-      const { data, error } = await supabase
+      const { data: profileData } = await supabase
         .from("profiles")
         .select(`
           subscription_tier,
@@ -87,69 +103,93 @@ export function AuthProvider({
         .eq("user_id", activeUser.id)
         .maybeSingle();
 
-      if (error) {
+      setProfile(profileData || null);
 
-        console.error(
-          "PROFILE LOAD ERROR:",
-          error
-        );
+      console.log("PROFILE DATA:", profileData);                     //|-----🟡🟡PATCHED 050626
+      console.log(
+        "PROFILE TIER:",
+        profileData?.subscription_tier
+      );
+      console.log(
+        "PROFILE STATUS:",
+        profileData?.subscription_status
+      );                                                             //-----|🟡🟡PATCHED 050626
 
-        return;
-      }
+      const resolved = resolveEffectiveTier({
 
-      setProfile(data || null);
+        subscriptionTier:
+          profileData?.subscription_tier || "free",
+
+        subscriptionStatus:
+          profileData?.subscription_status || "inactive",
+
+        gracePeriodUntil:
+          profileData?.grace_period_until || null,
+
+        currentPeriodEnd: null,
+      });
+
+      console.log("RESOLVED:", resolved);                             //🟡🟡PATCHED 050626
+
+      setTier(
+        profileData?.subscription_tier || "free"
+      );
+
+      setEffectiveTier(
+        resolved.effectiveTier
+      );
+
+      console.log("SETTING EFFECTIVE TIER:",resolved.effectiveTier);  //🟡🟡PATCHED 050626
+
+      setEffectiveStatus(
+        resolved.effectiveStatus
+      );
 
     },
-
     []
-
   );                                                                 //-----|🟡🟡PATCHED 250526
 
-  /* =========================================
-      AUTH REFRESH
-  ========================================= */
-  const refreshAuth = useCallback(
+  const refreshAuth = useCallback(async () => {
 
-    async () => {
+    try {
 
-      try {
-        setLoading(true);
+      setLoading(true);
 
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-        const activeUser =
-          session?.user || null;
+      console.log("SESSION:", session);                              //🟡🟡PATCHED 050626
+      console.log("SESSION USER:", session?.user?.id);               //🟡🟡PATCHED 050626
 
-        if (!activeUser) {
-          clearAuthState();
-        } else {
-          setUser(activeUser);
-          await refreshProfile(
-            activeUser
-          );
-        }
+      const activeUser =                                             //|-----🟡🟡PATCHED 250526     
+        session?.user || null;
 
-      } catch (error) {
-        console.error(
-          "AUTH REFRESH ERROR:",
-          error
-        );
+      if (!activeUser) {
         clearAuthState();
-      } finally {
-        setLoading(false);
-      }
-    },
+      } else {
+        setUser(activeUser);
+        await refreshProfile(activeUser);
+      }                                                              //-----|🟡🟡PATCHED 250526
 
-    [
-      clearAuthState,
-      refreshProfile,
-    ]
-  );
+    } catch (error) {
+
+      console.error(
+        "AUTH REFRESH ERROR:",
+        error
+      );
+
+      clearAuthState();
+
+    } finally {
+
+      setLoading(false);
+    }
+
+    }, [clearAuthState, refreshProfile]);                            //🟡🟡PATCHED 250526
 
   /* =========================================
-      INITIAL SESSION RESTORE
+     INITIAL SESSION RESTORE
   ========================================= */
 
   useEffect(() => {
@@ -172,64 +212,58 @@ export function AuthProvider({
   }, [refreshAuth]);
 
   /* =========================================
-      AUTH LISTENER
+     AUTH LISTENER
   ========================================= */
 
   useEffect(() => {
+
+  //if (!initialized) return;                                         //🔴🔴R-OPT-OUT 250526
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
 
-      async (_event, session) => {
+      async (_event, session) => {                                    //|-----🟡🟡PATCHED 250526
 
-        const activeUser =
-          session?.user || null;
+        const activeUser = session?.user || null;
+
+        console.log("ACTIVE USER:", activeUser);                      //🟡🟡PATCHED 050626
 
         console.log(
-          "AUTH EVENT:",
-          _event
-        );
-
-        if (_event === "SIGNED_OUT") {
+          "AUTH STATE CHANGE:",
+          _event,
+          activeUser?.id || "SIGNED_OUT"
+        );                      
+                                                                  
+        if (_event === "SIGNED_OUT") {                                 
 
           clearAuthState();
-
           return;
         }
 
-        if (
+        if (                                                          //|-----🟡🟡PATCHED 050526
           _event === "SIGNED_IN" ||
+          _event === "INITIAL_SESSION" ||
           _event === "TOKEN_REFRESHED" ||
           _event === "USER_UPDATED"
         ) {
+          setUser(activeUser);
 
           if (activeUser) {
-
-            setUser(activeUser);
-
-            await refreshProfile(
-              activeUser
-            );
-          }
+            await refreshProfile(activeUser);
+          }                                                           
 
           return;
-        }
-
-      }
-
+        }                                                             
+      }                                                               //-----|🟡🟡PATCHED 050526
     );
 
     return () => {
       subscription.unsubscribe();
     };
 
-  }, [
-
-    clearAuthState,
-    refreshProfile,
-
-  ]);
+//}, [initialized, hydrateAuthenticatedUser]);                        //🔴🔴R-OPT-OUT 250526
+  }, [clearAuthState, refreshProfile]);                               //🟡🟡PATCHED 250526
 
   /* =========================================
      LOGOUT
@@ -257,42 +291,10 @@ export function AuthProvider({
         "LOGOUT ERROR:",
         error
       );
-      
+
       setLoading(false);
     }
   }
-
-  /* =========================================
-      DERIVED AUTH VALUES
-  ========================================= */
-  const resolved =
-    resolveEffectiveTier({
-
-      subscriptionTier:
-        profile?.subscription_tier ||
-        "free",
-
-      subscriptionStatus:
-        profile?.subscription_status ||
-        "inactive",
-
-      gracePeriodUntil:
-        profile?.grace_period_until ||
-        null,
-
-      currentPeriodEnd: null,
-
-    });
-
-  const tier =
-    profile?.subscription_tier ||
-    "free";
-
-  const effectiveTier =
-    resolved.effectiveTier;
-
-  const effectiveStatus =
-    resolved.effectiveStatus;
 
   return (
 
@@ -300,10 +302,15 @@ export function AuthProvider({
       value={{
         user,
         loading,
+      //initialized,                                                 //🔴🔴R-OPT-OUT 250526
+
         profile,
+      //usage,                                                       //🔴🔴R-OPT-OUT 250526
+
         tier,
         effectiveTier,
         effectiveStatus,
+
         refreshAuth,
         logout,
       }}
