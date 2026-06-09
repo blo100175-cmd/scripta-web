@@ -112,6 +112,14 @@ export default function Home() {
   async function uploadFile() {
 
     if (!file || isUploading) return;
+
+    // Re-validate session before upload
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session && !anonId) {
+      setStatus("❌ Session error. Please refresh the page.");
+      return;
+    }
+
     setIsUploading(true);
 
     try {

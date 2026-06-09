@@ -194,14 +194,15 @@ export function AuthProvider({
         if (_event === "SIGNED_OUT") {
 
           clearAuthState();
-
+          setLoading(false);                                          //🟡🟡PATCHED 090626
           return;
         }
 
         if (
           _event === "SIGNED_IN" ||
           _event === "TOKEN_REFRESHED" ||
-          _event === "USER_UPDATED"
+          _event === "USER_UPDATED" ||
+          _event === "INITIAL_SESSION"
         ) {
 
           if (activeUser) {
