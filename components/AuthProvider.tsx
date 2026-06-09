@@ -152,24 +152,30 @@ export function AuthProvider({
       INITIAL SESSION RESTORE
   ========================================= */
 
-/*useEffect(() => {
+  useEffect(() => {
 
     let mounted = true;
 
     async function initialize() {
-
       if (!mounted) return;
 
-      await refreshAuth();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      // Don't call refreshProfile here — listener handles it
+      // Just resolve the loading gate
+      if (mounted) {
+        if (!session?.user) {
+          clearAuthState();
+        }
+        setLoading(false);        // ← only job: unblock the navbar
+      }
     }
 
     initialize();
 
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
 
-  }, [refreshAuth]);*/
+  }, [clearAuthState]);
 
   /* =========================================
       AUTH LISTENER
