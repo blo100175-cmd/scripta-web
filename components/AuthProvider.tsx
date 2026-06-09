@@ -152,7 +152,7 @@ export function AuthProvider({
       INITIAL SESSION RESTORE
   ========================================= */
 
-  useEffect(() => {
+/*useEffect(() => {
 
     let mounted = true;
 
@@ -169,7 +169,7 @@ export function AuthProvider({
       mounted = false;
     };
 
-  }, [refreshAuth]);
+  }, [refreshAuth]);*/
 
   /* =========================================
       AUTH LISTENER
