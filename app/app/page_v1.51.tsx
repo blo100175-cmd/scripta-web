@@ -1,20 +1,21 @@
 //scripta V1.050626.001 - Recovery Foundation Build
-//scripta V1.100626.003 - Auth Stabilization
 
 "use client";
 
 import { useState, useEffect } from "react";
+//import { createClient } from "@supabase/supabase-js";
 import { extractText, getDocumentProxy } from "unpdf";
-import TaglineStrip from "@/components/TaglineStrip";                           //🟡🟡PATCHED 16/3/26
-import { createClient } from "@supabase/supabase-js";                           //🟡🟡PATCHED 100626
-import { useAuth } from "@/components/AuthProvider";                            //🟡🟡PATCHED 100626
+import TaglineStrip from "@/components/TaglineStrip";                     //🟡🟡PATCHED 16/3/26
+import { getSupabase } from "@/lib/supabaseClient";                       //🟡🟡PATCHED 090626
+import { useAuth } from "@/components/AuthProvider";                      //🟡🟡PATCHED 090626
 
+const supabase = getSupabase();                                           //🟡🟡PATCHED 090626
 
 /* ------------------ SUPABASE CLIENT ------------------ */
-const supabase = createClient(
+/*const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+);/*
 
 /* ------------------ PDF EXTRACTION ------------------ */
 async function extractPdfText(file: File): Promise<string> {
@@ -25,6 +26,7 @@ async function extractPdfText(file: File): Promise<string> {
 }
 
 /* ------------------ RPC SAVE TEXT ------------------ */
+//async function saveExtractedText(docKey: string, text: string) {                      //OPT-OUT 050626
 async function saveExtractedText(supabase: any, docKey: string, text: string) {         //🟡🟡PATCHED 050626
   const { error } = await supabase.rpc("save_extracted_text", {
     p_doc_key: docKey,
@@ -37,11 +39,11 @@ async function saveExtractedText(supabase: any, docKey: string, text: string) { 
 export default function Home() {
 
   /* ---------------- AUTH ---------------- */
-  const [user, setUser] = useState<any>(null);
+//const [user, setUser] = useState<any>(null);
   const [anonId, setAnonId] = useState<string | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+//const [authLoading, setAuthLoading] = useState(true);*/
 
-  const { user: authUser } = useAuth();                                         //🟡🟡PATCHED 100626
+  const { user } = useAuth();                                             //🟡🟡PATCHED 090626     
 
   /* -------------- PIPELINE STATE -------------- */
   const [file, setFile] = useState<File | null>(null);
@@ -70,7 +72,7 @@ export default function Home() {
 
     setAnonId(storedAnon);
 
-    /* ===== AUTH SESSION ===== */
+    /* ===== AUTH SESSION ===== 
     supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null);
       setAuthLoading(false);
@@ -90,7 +92,7 @@ export default function Home() {
 
     });
 
-    return () => subscription.unsubscribe();
+    return () => subscription.unsubscribe();*/
 
   }, []);
 
@@ -110,10 +112,16 @@ export default function Home() {
   async function uploadFile() {
 
     if (!file || isUploading) return;
-  //setIsUploading(true);
-    const { data: { session } } = await supabase.auth.getSession();             //|-----🟡🟡PATCHED 100626
-    const effectiveUser = session?.user || authUser || null;
-    setIsUploading(true);                                                       //-----|🟡🟡PATCHED 100626
+
+    // Re-validate session before upload
+    const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
+
+    if (!session && !anonId) {
+      setStatus("❌ Session error. Please refresh the page.");
+      return;
+    }
+
+    setIsUploading(true);
 
     try {
 
@@ -124,47 +132,18 @@ export default function Home() {
 
       const filePath = `${crypto.randomUUID()}-${Date.now()}-${sanitizedFileName}`;     //🟡🟡PATCHED 050626
 
-    /*const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from("incoming")
         .upload(filePath, file);
 
-      if (uploadError) throw uploadError;*/
-
-      if (session?.access_token) {                                              //|-----🟡🟡PATCHED 100626
-
-        // REGISTERED USER → API route (bypasses clock skew)
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("filePath", filePath);
-
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || "Upload failed");
-        }
-
-      } else {
-
-        // ANON USER → direct upload (no JWT, no clock skew)
-        const { error: uploadError } = await supabase.storage
-          .from("incoming")
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-      }                                                                         //-----|🟡🟡PATCHED 100626
+      if (uploadError) throw uploadError;
 
       setStatus("Registering file...");
 
       const { data: inserted, error: insertError } = await supabase
         .from("incoming_files")
         .insert({
-        //user_id: user ? String(user.id) : anonId,
-          user_id: effectiveUser ? String(effectiveUser.id) : anonId,           //🟡🟡PATCHED 100626
+          user_id: user ? String(user.id) : anonId,
           file_name: file.name,
           bucket: "incoming",
           storage_path: filePath,
