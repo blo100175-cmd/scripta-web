@@ -23,8 +23,10 @@ export default function Navbar() {
   useEffect(() => {
 
     async function loadUser() {
-
-      const { data: { user } } = await supabase.auth.getUser();
+      
+    //const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();        //🟡🟡 PATCHED - 030726
+      const user = session?.user ?? null;
 
       if (!user) return;
 
