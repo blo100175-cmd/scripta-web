@@ -40,6 +40,10 @@ export default function Navbar() {
         .eq("user_id", user.id)
         .maybeSingle();
 
+      // === DIAGNOSTICS ==========================
+      console.log("USER ID:", user.id);
+      console.log("PROFILE:", JSON.stringify(profile));
+      
       if (profile) {
         setTier(profile.subscription_tier);
       }
