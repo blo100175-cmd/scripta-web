@@ -1,10 +1,10 @@
-//SCRIPTA V1.150526 - GLOBAL AUTH PROVIDER
+//SCRIPTA - V1.030726.01-R
+
 import type { Metadata } from "next";
 import { Fraunces, Bodoni_Moda } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
-import { AuthProvider } from "@/components/AuthProvider";     //🟡🟡PATCHED 150526 - GLOBAL AUTH PROVIDER
-import Footer from "@/components/Footer"
+import Footer from "@/components/Footer";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -31,11 +31,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${fraunces.variable} ${bodoni.variable}`}>
-        <AuthProvider>
-          <Navbar />
-          {children}
-          <Footer />
-        </AuthProvider>
+        <Navbar />
+        {children}
+        <Footer />
       </body>
     </html>
   );

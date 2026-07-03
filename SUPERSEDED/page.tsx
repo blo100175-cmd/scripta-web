@@ -1,11 +1,14 @@
-//SCRIPTA - V1.030726.01-R
+//scripta V1.050626.001 - Recovery Foundation Build
+//scripta V1.100626.003 - Auth Stabilization
 
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { extractText, getDocumentProxy } from "unpdf";
-import TaglineStrip from "@/components/TaglineStrip";  //🟡🟡PATCHED 16/3/26
+import TaglineStrip from "@/components/TaglineStrip";                           //🟡🟡PATCHED 16/3/26
+import { createClient } from "@supabase/supabase-js";                           //🟡🟡PATCHED 100626
+import { useAuth } from "@/components/AuthProvider";                            //🟡🟡PATCHED 100626
+
 
 /* ------------------ SUPABASE CLIENT ------------------ */
 const supabase = createClient(
@@ -22,7 +25,7 @@ async function extractPdfText(file: File): Promise<string> {
 }
 
 /* ------------------ RPC SAVE TEXT ------------------ */
-async function saveExtractedText(docKey: string, text: string) {
+async function saveExtractedText(supabase: any, docKey: string, text: string) {         //🟡🟡PATCHED 050626
   const { error } = await supabase.rpc("save_extracted_text", {
     p_doc_key: docKey,
     p_text: text,
@@ -38,6 +41,8 @@ export default function Home() {
   const [anonId, setAnonId] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
+  const { user: authUser } = useAuth();                                         //🟡🟡PATCHED 100626
+
   /* -------------- PIPELINE STATE -------------- */
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState("");
@@ -48,6 +53,8 @@ export default function Home() {
   >(null);
 
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [activeDocKey, setActiveDocKey] = useState<string | null>(null);                //🟡🟡PATCHED 050626
+
   const [isUploading, setIsUploading] = useState(false);
 
   /* ---------------- AUTH SESSION ---------------- */
@@ -99,32 +106,65 @@ export default function Home() {
 
   }
 
-  /* ================ UPLOAD FLOW ================= */
+  /* ---------------- UPLOAD FLOW ---------------- */
   async function uploadFile() {
 
     if (!file || isUploading) return;
-    setIsUploading(true);
+  //setIsUploading(true);
+    const { data: { session } } = await supabase.auth.getSession();             //|-----🟡🟡PATCHED 100626
+    const effectiveUser = session?.user || authUser || null;
+    setIsUploading(true);                                                       //-----|🟡🟡PATCHED 100626
 
     try {
 
       setStatus("Uploading file...");
 
-    //const filePath = `${Date.now()}-${file.name}`;
-      const sanitizedFileName = file.name.replace(/\s+/g, "-");
-      const filePath = `${crypto.randomUUID()}-${Date.now()}-${sanitizedFileName}`;
+    //const filePath = `${Date.now()}-${file.name}`;                                    //OPT-OUT 050626
+      const sanitizedFileName = file.name.replace(/\s+/g, "-");                         //🟡🟡PATCHED 050626
 
-      const { error: uploadError } = await supabase.storage
+      const filePath = `${crypto.randomUUID()}-${Date.now()}-${sanitizedFileName}`;     //🟡🟡PATCHED 050626
+
+    /*const { error: uploadError } = await supabase.storage
         .from("incoming")
         .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) throw uploadError;*/
+
+      if (session?.access_token) {                                              //|-----🟡🟡PATCHED 100626
+
+        // REGISTERED USER → API route (bypasses clock skew)
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("filePath", filePath);
+
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Upload failed");
+        }
+
+      } else {
+
+        // ANON USER → direct upload (no JWT, no clock skew)
+        const { error: uploadError } = await supabase.storage
+          .from("incoming")
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+      }                                                                         //-----|🟡🟡PATCHED 100626
 
       setStatus("Registering file...");
 
       const { data: inserted, error: insertError } = await supabase
         .from("incoming_files")
         .insert({
-          user_id: user ? String(user.id) : anonId,
+        //user_id: user ? String(user.id) : anonId,
+          user_id: effectiveUser ? String(effectiveUser.id) : anonId,           //🟡🟡PATCHED 100626
           file_name: file.name,
           bucket: "incoming",
           storage_path: filePath,
@@ -151,6 +191,7 @@ export default function Home() {
 
         if (data?.status === "registered" && data?.doc_key) {
           resolvedDocKey = data.doc_key;
+          localStorage.setItem("active_doc_key", resolvedDocKey as string);             //🟡🟡PATCHED 050626      
           break;
         }
 
@@ -171,7 +212,7 @@ export default function Home() {
 
         setStatus("Saving extracted text...");
 
-        await saveExtractedText(resolvedDocKey, text);
+        await saveExtractedText(supabase, resolvedDocKey, text);                        //🟡🟡PATCHED 050626                 
 
       }
 
@@ -184,6 +225,10 @@ export default function Home() {
     } catch (err: any) {
 
       console.error(err);
+
+      localStorage.removeItem("active_doc_key");                                        //🟡🟡PATCHED 050626
+      setActiveDocKey(null);                                                            //🟡🟡PATCHED 050626
+
       setStatus(`❌ ${err.message || "Unexpected error"}`);
 
     } finally {
@@ -243,6 +288,7 @@ export default function Home() {
       if (row.status === "COMPLETED") {
         setDocStatus("COMPLETED");
         setPdfUrl(row.pdf_url);
+        localStorage.removeItem("active_doc_key");                                      //🟡🟡PATCHED 050626
         setIsUploading(false);
         return;
       }
