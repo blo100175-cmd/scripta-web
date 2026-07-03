@@ -3,15 +3,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+//import { createClient } from "@supabase/supabase-js";
+import { getSupabase } from "@/lib/supabaseClient";                          //🟡🟡 PATCHED - 030726 
 import { extractText, getDocumentProxy } from "unpdf";
-import TaglineStrip from "@/components/TaglineStrip";  //🟡🟡PATCHED 16/3/26
+import TaglineStrip from "@/components/TaglineStrip";                        //🟡🟡PATCHED 16/3/26
 
 /* ------------------ SUPABASE CLIENT ------------------ */
-const supabase = createClient(
+/*const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+);*/
+const supabase = getSupabase();                                              //🟡🟡 PATCHED - 030726
 
 /* ------------------ PDF EXTRACTION ------------------ */
 async function extractPdfText(file: File): Promise<string> {
