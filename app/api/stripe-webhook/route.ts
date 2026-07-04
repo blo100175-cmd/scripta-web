@@ -1,5 +1,6 @@
 //STRIPE V1.1.180526 - FULL-STATE CENTRALIZATION - CLEANUP
 //SCRIPTA V1.040726.002 - Affiliate: referral submission on registration
+//SCRIPTA V1.040726.003 - Affiliate: commission pending_balance patch, remove duplicate engine
 
 import Stripe from "stripe";
 import { headers } from "next/headers";
