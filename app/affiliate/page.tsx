@@ -3,13 +3,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+//import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
+import { getSupabase } from "@/lib/supabaseClient";                     //🟡🟡PATCHED 040726
 
-const supabase = createClient(
+/*const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+);*/
+const supabase = getSupabase();                                         //🟡🟡PATCHED 040726
 
 function generateSAA() {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -92,7 +94,7 @@ export default function AffiliatePage() {
 
   }, []);
 
-  async function activateAffiliate() {
+/*async function activateAffiliate() {
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -106,7 +108,31 @@ export default function AffiliatePage() {
 
     if (error) { console.error(error); return; }
     window.location.reload();
-  }
+  }*/
+  async function activateAffiliate() {                                  //|-----🟡🟡PATCHED 040726
+
+    const supabase = getSupabase();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const referralCode = generateSAA();
+
+    const { error } = await supabase
+      .from("affiliates")
+      .insert({
+        user_id:           user.id,
+        referral_code:     referralCode,
+        terms_accepted_at: new Date().toISOString(),                     
+      });
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    window.location.reload();
+  }                                                                     //-----|🟡🟡PATCHED 040726
 
   if (loading) return <div className="p-6">Loading...</div>;
 
@@ -139,7 +165,7 @@ export default function AffiliatePage() {
   }
 
   // ACTIVATION
-  if (!affiliate && (tier === "student" || tier === "pro")) {
+/*if (!affiliate && (tier === "student" || tier === "pro")) {
     return (
       <div className="p-6 max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">Become a Scripta Affiliate</h1>
@@ -150,6 +176,38 @@ export default function AffiliatePage() {
         <button onClick={activateAffiliate} className="px-4 py-2 bg-black text-white rounded">
           Activate Affiliate
         </button>
+      </div>
+    );
+  }*/
+
+  // ACTIVATION
+  if (!affiliate && (tier === "student" || tier === "pro")) {
+    return (
+      <div className="p-6 max-w-2xl mx-auto">
+
+        <h1 className="text-2xl font-bold mb-4">
+          Become a Scripta Affiliate
+        </h1>
+
+        <p className="mb-4 text-gray-600">
+          Earn 15% one-time commission and 10% recurring commission
+          for every active paid user you refer.
+        </p>
+
+        <p className="mb-6 text-gray-600">
+          By clicking Activate Affiliate, you confirm that you have read and agree to the{" "}
+          <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="underline">Terms of Service</a>
+          {" "}and the{" "}
+          <a href="/affiliate-guide" target="_blank" rel="noopener noreferrer" className="underline">Affiliate Program Guide</a>.
+        </p>
+
+        <button
+          onClick={activateAffiliate}
+          className="px-4 py-2 bg-black text-white rounded"
+        >
+          Activate Affiliate
+        </button>
+
       </div>
     );
   }
