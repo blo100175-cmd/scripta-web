@@ -1,8 +1,10 @@
 //SCRIPTA V1.1.070426 - AFFILIATE BUILD-IN 
+//SCRIPTA V1.040726.002 - Affiliate: referral submission on registration
+
 "use client";
 
-import { useEffect } from "react";  // 🟡🟡 PATCHED 7/4/26 - AFFILIATE BUILD-IN FUNCTION
-import { getSupabase } from "@/lib/supabaseClient";      //🟡🟡PATCHED 8/4/26
+import { useEffect } from "react";                                      // 🟡🟡 PATCHED 7/4/26 - AFFILIATE BUILD-IN FUNCTION
+import { getSupabase } from "@/lib/supabaseClient";                     //🟡🟡PATCHED 8/4/26
 
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
@@ -13,7 +15,7 @@ import HomeButton from "@/components/HomeButton"
 
 export default function Home() {
 
-  const supabase = getSupabase();         //🟡🟡PATCHED 10/4/26
+  const supabase = getSupabase();                                       //🟡🟡PATCHED 10/4/26
 
   useEffect(() => {
 
@@ -56,12 +58,36 @@ export default function Home() {
 
             if (error) {
               console.error("❌ Session set failed:", error);
-            } else {
+            } else {                                                    //|-----🟡🟡PATCHED 040726
               console.log("✅ User auto-logged in");
+
+              // ===== AFFILIATE REFERRAL SUBMISSION =====
+              const refCode = localStorage.getItem("ref_code");
+              const { data: sessionData } = await supabase.auth.getSession();
+              const userId = sessionData?.session?.user?.id;
+
+              if (refCode && userId) {
+                try {
+                  await fetch("/api/affiliate/register", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      referral_code: refCode,
+                      user_id: userId,
+                    }),
+                  });
+                  localStorage.removeItem("ref_code");
+                  console.log("✅ REFERRAL SUBMITTED");
+                } catch (err) {
+                  console.error("❌ REFERRAL SUBMISSION FAILED:", err);
+                }
+              }
+              // ===== END AFFILIATE REFERRAL SUBMISSION =====
 
               // clean URL + move to app
               window.history.replaceState({}, document.title, "/app");
-            }
+            }                                                           //-----|🟡🟡PATCHED 040726
+
           } else {
             console.log("⚠️ Session already exists — skip setSession");
           }
@@ -83,50 +109,7 @@ export default function Home() {
 
     init();
 
-  }, []);
-  
-  // ========== AFFILIATE REF CAPTURE ==========   
-/*useEffect(() => {
-    console.log("URL DEBUG:", window.location.href);
-
-    const params = new URLSearchParams(window.location.search);
-    const ref = params.get("ref");
-
-    if (ref && !localStorage.getItem("ref_code")) {
-      console.log("✅ REF DETECTED:", ref);
-      localStorage.setItem("ref_code", ref);
-    }
-  }, []);                       
-
-  // ========== SUPABASE EMAIL LOGIN HANDLER ==========    
-  const hash = window.location.hash;
-
-  if (hash && hash.includes("access_token")) {
-    const params = new URLSearchParams(hash.replace("#", ""));
-
-    const access_token = params.get("access_token");
-    const refresh_token = params.get("refresh_token");
-
-    if (access_token && refresh_token) {
-      console.log("🔐 AUTH TOKENS DETECTED");
-
-      supabase.auth
-        .setSession({
-          access_token,
-          refresh_token,
-        })
-        .then(({ error }: { error: any }) => {
-          if (error) {
-            console.error("❌ Session set failed:", error);
-          } else {
-            console.log("✅ User auto-logged in");
-
-            // Clean URL
-            window.history.replaceState({}, document.title, "/");
-          }
-        });
-    }
-  }*/                              
+  }, []);                           
 
   // ============= MAINPAGE LAYOUT ==============
   return (
