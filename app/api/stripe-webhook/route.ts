@@ -1,9 +1,11 @@
 //STRIPE V1.1.180526 - FULL-STATE CENTRALIZATION - CLEANUP
+//SCRIPTA V1.040726.002 - Affiliate: referral submission on registration
+
 import Stripe from "stripe";
 import { headers } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 
-function getSupabase() {                 //|-----🟡🟡 PATCHED 20/3/26
+function getSupabase() {                                               //|-----🟡🟡 PATCHED 20/3/26
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 /*const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;*/
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -21,7 +23,7 @@ function getStripe() {
     throw new Error("Missing Stripe key");
   }
   return new Stripe(key);
-}                                   //-----|🟡🟡 20/3/26
+}                                                                      //-----|🟡🟡 20/3/26
 
 function getCurrentMonthKey() {
   const now = new Date();
@@ -31,17 +33,17 @@ function getCurrentMonthKey() {
 /* =========================
        page_limit QUOTA
     ========================= */
-const quotaMap: Record<string, number> = {          //|----- 🟡🟡 PATCHED 15/3/26
+const quotaMap: Record<string, number> = {                             //|----- 🟡🟡 PATCHED 15/3/26
   free: 30,
   lite: 100,
   student: 200,
   pro: 500
-};                                          //-----|🟡🟡 15/3/26
+};                                                                     //-----|🟡🟡 15/3/26
 
 export async function POST(req: Request) {
 
-  const stripe = getStripe();      // ✅ lazy init  //🟡🟡 PATCHED 20/3/26
-  const supabase = getSupabase();  // ✅ lazy init  //🟡🟡 PATCHED 20/3/26
+  const stripe = getStripe();      // ✅ lazy init                    //🟡🟡 PATCHED 20/3/26
+  const supabase = getSupabase();  // ✅ lazy init                    //🟡🟡 PATCHED 20/3/26
 
   const body = await req.text();
   const signature = (await headers()).get("stripe-signature");
@@ -129,25 +131,6 @@ export async function POST(req: Request) {
         updated_at: now,
       })
       .eq("user_id", userId);
-
-    /* =========================
-       3️⃣ Update user_usage tier
-    ========================= */
-  /*await supabase.from("user_usage")
-      .update({
-        tier: plan,
-        updated_at: now,
-      })
-      .eq("user_id", userId)
-      .eq("month_key", getCurrentMonthKey());
-  }*/
-
-  /*const quotaMap: Record<string, number> = {   
-      free: 30,
-      lite: 100,
-      student: 200,
-      pro: 500
-    };*/
 
     await supabase.from("user_usage")       //|-----🟡🟡 PATCHED 15/3/26
       .upsert({
@@ -330,34 +313,18 @@ export async function POST(req: Request) {
       })
       .eq("user_id", userId);
 
-    // ✅ Sync usage tier alignment
-    /*await supabase.from("user_usage")
-      .update({
-        tier: plan,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId)
-      .eq("month_key", getCurrentMonthKey());*/
-    
-    /*const quotaMap: Record<string, number> = {      
-      free: 30,
-      lite: 100,
-      student: 200,
-      pro: 500
-    };*/
-
-    await supabase.from("user_usage")           //|-----🟡🟡 PATCHED 15/3/26
+    await supabase.from("user_usage")                                  //|-----🟡🟡 PATCHED 15/3/26
       .upsert({
         user_id: userId,
         month_key: getCurrentMonthKey(),
         tier: plan,
       /*page_limit: quotaMap[plan],*/
-        page_limit: quotaMap[plan as keyof typeof quotaMap],   //🟡🟡 PATCHED 15/3/26
+        page_limit: quotaMap[plan as keyof typeof quotaMap],           //🟡🟡 PATCHED 15/3/26
       /*updated_at: new Date().toISOString(),*/
-        updated_at: now,                            //🟡🟡PATCHED 180526
+        updated_at: now,                                               //🟡🟡PATCHED 180526
       }, {
         onConflict: "user_id,month_key"
-      });                                       //-----|🟡🟡 15/3/26
+      });                                                              //-----|🟡🟡 15/3/26
 
     console.log("🎯 Subscription renewal synced successfully");
     
@@ -390,24 +357,36 @@ export async function POST(req: Request) {
           stripe_subscription_id: subscriptionId,
           plan: plan,
         /*updated_at: new Date().toISOString(),*/
-        updated_at: now,                            //🟡🟡PATCHED 180526
+        updated_at: now,                                               //🟡🟡PATCHED 180526
         })
-        .eq("referred_user_id", userId);              //-----|🟡🟡 PATCHED 7/4/26
+        .eq("referred_user_id", userId);                               //-----|🟡🟡 PATCHED 7/4/26
 
       // 🔁 Get current affiliate value --------------------------
       const { data: affiliate } = await supabase
         .from("affiliates")
-        .select("total_earned, total_referrals")
+        .select("total_earned, total_referrals, pending_balance")
         .eq("user_id", referral.referrer_user_id)
         .single();
 
       // 🔁 Update affiliate ------------------------------------
-      await supabase                                  //|-----🟡🟡 PATCHED 7/4/26 - UPDATE AFFILIATES
+    /*await supabase                                  
         .from("affiliates")
         .update({
           total_earned: (affiliate?.total_earned || 0) + commission,
         })
-        .eq("user_id", referral.referrer_user_id);    //-----|🟡🟡 PATCHED 7/4/26
+        .eq("user_id", referral.referrer_user_id);*/                    //COMMENT-OUT 040726
+
+        await supabase                                                  //|-----🟡🟡PATCHED 040726
+          .from("affiliates")
+          .update({
+            total_earned: parseFloat(
+              ((affiliate?.total_earned || 0) + commission).toFixed(2)
+            ),
+            pending_balance: parseFloat(
+              ((affiliate?.pending_balance || 0) + commission).toFixed(2)
+            ),                                                          //-----|🟡🟡PATCHED 040726
+          })
+          .eq("user_id", referral.referrer_user_id);
 
       // 🔁 increment referral count ONLY on first payment -------
       if (isInitial) {
