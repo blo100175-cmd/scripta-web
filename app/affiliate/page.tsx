@@ -56,6 +56,9 @@ export default function AffiliatePage() {
   const [submitting, setSubmitting] = useState(false);                  //🟡🟡PATCHED 050726
   const [dashMsg, setDashMsg] = useState<string>("");                   //🟡🟡PATCHED 050726
 
+  const [agreedToS, setAgreedToS] = useState(false);                    //🟡🟡PATCHED 060726
+  const [agreedGuide, setAgreedGuide] = useState(false);                //🟡🟡PATCHED 060726
+
   useEffect(() => {
 
     async function loadData() {
@@ -258,21 +261,47 @@ export default function AffiliatePage() {
           Become a Scripta Affiliate
         </h1>
 
-        <p className="mb-4 text-gray-600">
+        <p className="mb-6 text-gray-600">
           Earn 15% one-time commission and 10% recurring commission
           for every active paid user you refer.
         </p>
 
-        <p className="mb-6 text-gray-600">
-          By clicking Activate Affiliate, you confirm that you have read and agree to the{" "}
-          <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="underline">Terms of Service</a>
-          {" "}and the{" "}
-          <a href="/affiliate-guide" target="_blank" rel="noopener noreferrer" className="underline">Affiliate Program Guide</a>.
-        </p>
+        <div className="mb-4 flex items-start gap-3">
+          <input
+            type="checkbox"
+            id="agreeToS"
+            checked={agreedToS}
+            onChange={e => setAgreedToS(e.target.checked)}
+            className="mt-1"
+          />
+          <label htmlFor="agreeToS" className="text-gray-600 text-sm">
+            I have read and agree to the{" "}
+            <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="underline">
+              Terms of Service
+            </a>.
+          </label>
+        </div>
+
+        <div className="mb-6 flex items-start gap-3">
+          <input
+            type="checkbox"
+            id="agreeGuide"
+            checked={agreedGuide}
+            onChange={e => setAgreedGuide(e.target.checked)}
+            className="mt-1"
+          />
+          <label htmlFor="agreeGuide" className="text-gray-600 text-sm">
+            I have read and agree to the{" "}
+            <a href="/affiliate-guide" target="_blank" rel="noopener noreferrer" className="underline">
+              Affiliate Program Guide
+            </a>.
+          </label>
+        </div>
 
         <button
           onClick={activateAffiliate}
-          className="px-4 py-2 bg-black text-white rounded"
+          disabled={!agreedToS || !agreedGuide}
+          className="px-4 py-2 bg-black text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Activate Affiliate
         </button>
