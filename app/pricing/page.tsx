@@ -1,11 +1,13 @@
-//SCRIPTA V1.1.140526 - MIGRATION FULL-STATE CENTRALIZATION
-//SCRIPTA V1.1.160526 - MIGRATION FULL-STATE CENTRALIZATION - CLEANUP resolveEffectiveTier
-//SCRIPTA V1.1.260526 - CLEANUP LEGACY AUTH COUPLING
-
 "use client";
-import { useState } from "react";                                      //🟡🟡PATCHED 260526
-import { useAuth } from "@/components/AuthProvider";                   //🟡🟡PATCHED 150526
+
+import { useEffect, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 import TaglineStrip from "@/components/TaglineStrip";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 type PricingProfile = {
   user_id: string;
@@ -20,14 +22,94 @@ type PricingProfile = {
 
 export default function PricingPage() {
 
-  const {user,loading,profile,effectiveTier,effectiveStatus,} = useAuth();    //🟡🟡PATCHED 150526
+  const [profile, setProfile] = useState<PricingProfile | null>(null);
+  const [user, setUser] = useState<any>(null);
+
+  const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   /* =========================
+     LOAD PROFILE (OPTIONAL)
+  ========================= */
+
+  useEffect(() => {
+
+    async function loadProfile() {
+
+      try {
+
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+
+        if (!user) {
+          setLoading(false);
+          return;
+        }
+
+        const res = await fetch("/api/get-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: user.id }),
+        });
+
+        if (!res.ok) throw new Error("Failed to load profile");
+
+        const data = await res.json();
+        setProfile(data);
+
+      } catch (err: any) {
+
+        setError(err.message);
+
+      } finally {
+
+        setLoading(false);
+
+      }
+
+    }
+
+    loadProfile();
+
+  }, []);
+
+
+  /* =========================
      STRIPE PLAN UPGRADE
   ========================= */
-  async function upgrade(plan: string) {                                //|-----🟡🟡 PATCHED
+/*async function upgrade(plan: string) {
+    try {
+      setProcessing(true);
+
+      // Get current logged-in user
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          userId: user?.id ?? null,
+          plan
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to create checkout session");
+      }
+
+      const data = await res.json();
+      window.location.href = data.url;
+    }
+    catch (err: any) {
+      alert(err.message);
+      setProcessing(false);
+    }
+  }*/
+
+  async function upgrade(plan: string) {          //|-----🟡🟡 PATCHED
 
     if (!user) {
       alert("Please register or login before subscribing.");
@@ -60,7 +142,7 @@ export default function PricingPage() {
       alert(err.message);
       setProcessing(false);
     }
-  }                                                                     //-----|🟡🟡 
+  }                                 //-----|🟡🟡 
 
   /* =================================
      SWITCH-TO-FREE (for expired user)
@@ -134,7 +216,9 @@ export default function PricingPage() {
 
       alert(err.message);
       setProcessing(false);
+
     }
+
   }
 
   /* =========================
@@ -149,6 +233,7 @@ export default function PricingPage() {
     return <div style={{ padding: 40 }}>Error: {error}</div>;
   }
 
+
   /* =========================
      PROFILE STATE
   ========================= */
@@ -157,17 +242,18 @@ export default function PricingPage() {
     ? new Date(profile.current_period_end).toLocaleDateString()
     : "N/A";
 
-    const isActive =                                      
-      effectiveStatus === "active" ||
-      effectiveStatus === "grace";                                      //🟡🟡ATCHED 260526
+  const isActive =
+    profile?.subscription_status === "active" &&
+    (!profile?.current_period_end ||
+      new Date(profile.current_period_end) > new Date());
 
   const displayStatus =
     profile?.cancel_at_period_end && isActive
       ? "Active (Cancels at period end)"
       : profile?.subscription_status; 
 
-  const isExpired =
-    effectiveStatus === "expired";                                      //🟡🟡PATCHED 160526
+  const isExpired = profile?.subscription_status === "expired";   //🟡🟡 PATCHED 15/3/26
+
 
   /* =========================
      PAGE UI (JSX)
@@ -193,7 +279,7 @@ export default function PricingPage() {
           <section className="plan-status">
             <h2>Your Current Plan</h2>
             <p>
-              <strong>Tier:</strong> {effectiveTier}
+              <strong>Tier:</strong> {profile.subscription_tier}
             </p>
             <p>
               <strong>Status:</strong> {displayStatus}
@@ -231,34 +317,37 @@ export default function PricingPage() {
                   return;
                 }
 
-                if (isExpired && effectiveTier !== "free") {
+                /* expired paid user → switch to free */
+                if (isExpired && profile?.subscription_tier !== "free") {
                   switchToFree();
                   return;
                 }
 
-                if (effectiveTier === "free" && !isExpired) {
+                /* already active free */
+                if (profile?.subscription_tier === "free" && !isExpired) {
                   return;
                 }
 
+                /* fallback */
                 window.location.href = "/app";
 
               }}
-              disabled={processing || (effectiveTier === "free" && !isExpired)}
+              disabled={processing || (profile?.subscription_tier === "free" && !isExpired)}
             >
-              {!user                                     
+              {!user
                 ? "Register Free"
-                : effectiveTier === "free" && !isExpired
+                : profile?.subscription_tier === "free" && !isExpired
                   ? "Current Plan"
                   : isExpired
                     ? "Switch to Free"
-                    : "Free Plan"}                        
+                    : "Free Plan"}
             </button>
           </div>
-          
+
           {/* LITE */}
           <div className="pricing-card">
             <h2>LITE</h2>
-            <p className="price">$3.99 / month</p>           
+            <p className="price">$3.99 / month</p>
             <ul>
               <li>100 pages per month</li>
               <li>No watermark</li>
@@ -266,9 +355,9 @@ export default function PricingPage() {
             </ul>
             <button
               onClick={() => upgrade("lite")}
-              disabled={processing || (effectiveTier === "lite" && !isExpired)}
+              disabled={processing || (profile?.subscription_tier === "lite" && !isExpired)}
             >
-              {effectiveTier === "lite" && !isExpired     
+              {profile?.subscription_tier === "lite" && !isExpired
                 ? "Current Plan"
                 : processing
                   ? "Redirecting..."
@@ -287,9 +376,9 @@ export default function PricingPage() {
             </ul>
             <button
               onClick={() => upgrade("student")}
-              disabled={processing || (effectiveTier === "student" && !isExpired)}
+              disabled={processing || (profile?.subscription_tier === "student" && !isExpired)}
             >
-              {effectiveTier === "student" && !isExpired      
+              {profile?.subscription_tier === "student" && !isExpired
                 ? "Current Plan"
                 : processing
                   ? "Redirecting..."
@@ -308,9 +397,9 @@ export default function PricingPage() {
             </ul>
             <button
               onClick={() => upgrade("pro")}
-              disabled={processing || (effectiveTier === "pro" && !isExpired)}
+              disabled={processing || (profile?.subscription_tier === "pro" && !isExpired)}
             >
-              {effectiveTier === "pro" && !isExpired     
+              {profile?.subscription_tier === "pro" && !isExpired
                 ? "Current Plan"
                 : processing
                   ? "Redirecting..."

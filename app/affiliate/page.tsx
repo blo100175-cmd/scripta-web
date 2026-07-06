@@ -1,5 +1,5 @@
-//SCRIPTA - V1.030726.001 - Affiliate commission payment flow update
-//SCRIPTA - V1.030726.008 - Dashboard UI — balance, banking, withdrawal, history
+//SCRIPTA - V1.030726.001 - Affiliate - Commission payment flow update
+//SCRIPTA - V1.030726.008 - Affiliate - Activation & Dashboard UI
 
 "use client";
 
