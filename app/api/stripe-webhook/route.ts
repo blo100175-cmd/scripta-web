@@ -1,6 +1,7 @@
 //STRIPE V1.1.180526 - FULL-STATE CENTRALIZATION - CLEANUP
 //SCRIPTA V1.040726.002 - Affiliate: referral submission on registration
 //SCRIPTA V1.040726.003 - Affiliate: commission pending_balance patch, remove duplicate engine
+//SCRIPTA V1.070726.012 - Affiliate: referral bonus pages on checkout
 
 import Stripe from "stripe";
 import { headers } from "next/headers";
@@ -89,13 +90,72 @@ export async function POST(req: Request) {
     const userId = subscription.metadata?.userId;
     const plan = session.metadata?.plan;
 
-    console.log("✅ CHECKOUT COMPLETED", { userId, plan });     //🟡🟡 PATCHED 6/4/26 - SUCCESS LOGGING
+    // ===== REFERRAL BONUS PAGES =====                    //|-----🟡🟡PATCHED 070726
+    const bonusMap: Record<string, number> = {
+      lite:    50,
+      student: 100,
+      pro:     200,
+    };
+
+    const bonus = bonusMap[plan as keyof typeof bonusMap];
+
+    if (bonus) {
+
+      const { data: referral } = await supabase
+        .from("referrals")
+        .select("id, bonus_applied")
+        .eq("referred_user_id", userId)
+        .eq("bonus_applied", false)
+        .maybeSingle();
+
+      if (referral) {
+
+        // Apply bonus to page_limit
+        await supabase
+          .from("user_usage")
+          .update({
+            page_limit: supabase.rpc("get_page_limit", { p_user_id: userId, p_month_key: getCurrentMonthKey() }),
+          })
+          .eq("user_id", userId)
+          .eq("month_key", getCurrentMonthKey());
+
+        // Simpler direct update
+        const { data: usageRow } = await supabase
+          .from("user_usage")
+          .select("page_limit")
+          .eq("user_id", userId)
+          .eq("month_key", getCurrentMonthKey())
+          .maybeSingle();
+
+        if (usageRow) {
+          await supabase
+            .from("user_usage")
+            .update({
+              page_limit: (usageRow.page_limit || 0) + bonus,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("user_id", userId)
+            .eq("month_key", getCurrentMonthKey());
+        }
+
+        // Mark bonus as applied
+        await supabase
+          .from("referrals")
+          .update({ bonus_applied: true })
+          .eq("id", referral.id);
+
+        console.log("✅ BONUS PAGES APPLIED:", bonus, "to", userId);
+      }
+    }
+    // ===== END REFERRAL BONUS PAGES =====                //-----|🟡🟡PATCHED 070726
+
+    console.log("✅ CHECKOUT COMPLETED", { userId, plan });                 //🟡🟡 PATCHED 6/4/26 - SUCCESS LOGGING
 
   /*if (!userId || !plan) {
       return new Response("Missing metadata", { status: 200 });
     }*/
 
-    if (!userId || !plan) {                   //|-----FAILSAFE 🟡🟡 PATCHED 6/4/26
+    if (!userId || !plan) {                                                 //|-----FAILSAFE 🟡🟡 PATCHED 6/4/26
       console.error("❌ Missing metadata (checkout.session.completed)", {
         userId,
         plan,
