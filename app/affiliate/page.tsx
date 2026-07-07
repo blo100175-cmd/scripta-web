@@ -1,5 +1,6 @@
 //SCRIPTA - V1.030726.001 - Affiliate - Commission payment flow update
 //SCRIPTA - V1.030726.008 - Affiliate - Activation & Dashboard UI
+//SCRIPTA - V1.070726.013 - Affiliate: copy button on referral link
 
 "use client";
 
@@ -55,6 +56,8 @@ export default function AffiliatePage() {
   const [withdrawAmount, setWithdrawAmount] = useState<string>("");     //🟡🟡PATCHED 050726
   const [submitting, setSubmitting] = useState(false);                  //🟡🟡PATCHED 050726
   const [dashMsg, setDashMsg] = useState<string>("");                   //🟡🟡PATCHED 050726
+
+  const [copied, setCopied] = useState(false);                          //🟡🟡PATCHED 070726
 
   const [agreedToS, setAgreedToS] = useState(false);                    //🟡🟡PATCHED 060726
   const [agreedGuide, setAgreedGuide] = useState(false);                //🟡🟡PATCHED 060726
@@ -322,7 +325,21 @@ export default function AffiliatePage() {
       {/* REFERRAL LINK */}
       <div className="mb-6">
         <p className="font-medium">Your Referral Link:</p>
-        <div className="mt-2 p-3 bg-gray-100 rounded break-all">{referralLink}</div>
+        <div className="mt-2 flex gap-2 items-center">
+          <div className="flex-1 p-3 bg-gray-100 rounded break-all text-sm">
+            {referralLink}
+          </div>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(referralLink);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+            className="px-3 py-2 bg-black text-white rounded text-sm whitespace-nowrap"
+          >
+            {copied ? "✅ Copied!" : "Copy Link"}
+          </button>
+        </div>
       </div>
 
       {/* STATS */}
