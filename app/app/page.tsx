@@ -1,4 +1,5 @@
 //SCRIPTA - V1.030726.01-R
+//SCRIPTA - V1.070726.016 - Affiliate: move referral submission to /app page
 
 "use client";
 
@@ -64,6 +65,32 @@ export default function Home() {
     }
 
     setAnonId(storedAnon);
+
+    /* ===== REFERRAL SUBMISSION ===== */                               //|-----🟡🟡PATCHED 070726
+    const refCode = localStorage.getItem("ref_code");
+
+    if (refCode) {
+      supabase.auth.getSession().then(async ({ data }) => {
+        const userId = data.session?.user?.id;
+        if (userId) {
+          try {
+            await fetch("/api/affiliate/register", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                referral_code: refCode,
+                user_id: userId,
+              }),
+            });
+            localStorage.removeItem("ref_code");
+            console.log("✅ REFERRAL SUBMITTED FROM /app");
+          } catch (err) {
+            console.error("❌ REFERRAL SUBMISSION ERROR:", err);
+          }
+        }
+      });
+    }
+    /* ===== END REFERRAL SUBMISSION ===== */                           //-----|🟡🟡PATCHED 070726
 
     /* ===== AUTH SESSION ===== */
     supabase.auth.getSession().then(({ data }) => {
