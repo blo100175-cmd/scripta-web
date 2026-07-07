@@ -66,7 +66,7 @@ export async function POST(req: Request) {
     return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
-  console.log("🔥 STRIPE EVENT:", event.type);  //WEBHOOK LOGGING 🟡🟡 PATCHED 6/4/26
+  console.log("🔥 STRIPE EVENT:", event.type);              //WEBHOOK LOGGING 🟡🟡 PATCHED 6/4/26
 
   /* =========================================================
      CHECKOUT SESSION COMPLETED (Bootstrap)
