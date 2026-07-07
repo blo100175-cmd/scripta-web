@@ -1,5 +1,6 @@
-//SCRIPTA V1.1.070426 - AFFILIATE BUILD-IN 
-//SCRIPTA V1.040726.002 - Affiliate: referral submission on registration
+//SCRIPTA - V1.1.070426 - AFFILIATE BUILD-IN 
+//SCRIPTA - V1.040726.002 - Affiliate: referral submission on registration
+//SCRIPTA - V1.070726.014 - Affiliate: referral banner on homepage
 
 "use client";
 

@@ -1,3 +1,5 @@
+//SCRIPTA - V1.070726.015 - Affiliate: bonus pages display on pricing page
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -29,6 +31,8 @@ export default function PricingPage() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [hasReferral, setHasReferral] = useState(false);                //🟡🟡PATCHED 070726
+
   /* =========================
      LOAD PROFILE (OPTIONAL)
   ========================= */
@@ -41,6 +45,10 @@ export default function PricingPage() {
 
         const { data: { user } } = await supabase.auth.getUser();
         setUser(user);
+
+        // Check referral in localStorage
+        const refCode = localStorage.getItem("ref_code");                     //🟡🟡PATCHED 070726
+        if (refCode) setHasReferral(true);
 
         if (!user) {
           setLoading(false);
@@ -73,41 +81,6 @@ export default function PricingPage() {
     loadProfile();
 
   }, []);
-
-
-  /* =========================
-     STRIPE PLAN UPGRADE
-  ========================= */
-/*async function upgrade(plan: string) {
-    try {
-      setProcessing(true);
-
-      // Get current logged-in user
-      const { data: { user } } = await supabase.auth.getUser();
-
-      const res = await fetch("/api/create-checkout-session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          userId: user?.id ?? null,
-          plan
-        })
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to create checkout session");
-      }
-
-      const data = await res.json();
-      window.location.href = data.url;
-    }
-    catch (err: any) {
-      alert(err.message);
-      setProcessing(false);
-    }
-  }*/
 
   async function upgrade(plan: string) {          //|-----🟡🟡 PATCHED
 
@@ -348,8 +321,11 @@ export default function PricingPage() {
           <div className="pricing-card">
             <h2>LITE</h2>
             <p className="price">$3.99 / month</p>
+            {hasReferral && (
+              <p className="bonus-badge">🎁 +50 bonus pages this month!</p>
+            )}
             <ul>
-              <li>100 pages per month</li>
+              <li>{hasReferral ? "100 + 50 = 150 pages this month" : "100 pages per month"}</li>
               <li>No watermark</li>
               <li>Standard processing</li>
             </ul>
@@ -369,8 +345,11 @@ export default function PricingPage() {
           <div className="pricing-card featured">
             <h2>STUDENT</h2>
             <p className="price">$7.99 / month</p>
+            {hasReferral && (
+              <p className="bonus-badge">🎁 +100 bonus pages this month!</p>
+            )}
             <ul>
-              <li>200 pages per month</li>
+              <li>{hasReferral ? "200 + 100 = 300 pages this month" : "200 pages per month"}</li>
               <li>No watermark</li>
               <li>Priority AI processing</li>
             </ul>
@@ -390,8 +369,11 @@ export default function PricingPage() {
           <div className="pricing-card">
             <h2>PRO</h2>
             <p className="price">$19.99 / month</p>
+            {hasReferral && (
+              <p className="bonus-badge">🎁 +200 bonus pages this month!</p>
+            )}
             <ul>
-              <li>500 pages per month</li>
+              <li>{hasReferral ? "500 + 200 = 700 pages this month" : "500 pages per month"}</li>
               <li>No watermark</li>
               <li>Fast AI processing</li>
             </ul>
