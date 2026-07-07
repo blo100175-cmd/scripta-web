@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useEffect } from "react";                                      // 🟡🟡 PATCHED 7/4/26 - AFFILIATE BUILD-IN FUNCTION
+import { useEffect, useState } from "react";                            // 🟡🟡 PATCHED 7/4/26 - AFFILIATE BUILD-IN FUNCTION
 import { getSupabase } from "@/lib/supabaseClient";                     //🟡🟡PATCHED 8/4/26
 
 import Hero from "@/components/Hero";
@@ -16,6 +16,7 @@ import HomeButton from "@/components/HomeButton"
 export default function Home() {
 
   const supabase = getSupabase();                                       //🟡🟡PATCHED 10/4/26
+  const [showRefBanner, setShowRefBanner] = useState(false);            //🟡🟡PATCHED 070726
 
   useEffect(() => {
 
@@ -29,9 +30,20 @@ export default function Home() {
       const params = new URLSearchParams(window.location.search);
       const ref = params.get("ref");
 
+    /*if (ref && !localStorage.getItem("ref_code")) {
+        console.log("✅ REF DETECTED:", ref);
+        localStorage.setItem("ref_code", ref);
+      }*/
+      
       if (ref && !localStorage.getItem("ref_code")) {
         console.log("✅ REF DETECTED:", ref);
         localStorage.setItem("ref_code", ref);
+        setShowRefBanner(true);                                         //🟡🟡PATCHED 070726
+      }
+
+      // Show banner if ref_code already in localStorage                //🟡🟡PATCHED 070726
+      if (localStorage.getItem("ref_code")) {
+        setShowRefBanner(true);
       }
 
       /* ================= AUTH HANDLER ================= */
@@ -114,7 +126,25 @@ export default function Home() {
   // ============= MAINPAGE LAYOUT ==============
   return (
     <div id="top">
-    
+
+      {/* REFERRAL BANNER */}
+      {showRefBanner && (
+        <div className="ref-banner">
+          <span>🎁 You've been invited to Scripta!</span>
+          <span>Subscribe to any paid plan and get <strong>bonus pages FREE</strong> — this month only.</span>
+          <a href="/pricing" className="ref-banner-btn">See Plans</a>
+          <button
+            onClick={() => {
+              localStorage.removeItem("ref_code");
+              setShowRefBanner(false);
+            }}
+            className="ref-banner-close"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* HERO SECTION */}
       <Hero />
 
