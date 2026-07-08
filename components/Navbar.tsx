@@ -86,6 +86,10 @@ export default function Navbar() {
     
     loadUser();
 
+    // Re-fetch on window focus — catches post-Stripe redirect state          //🟡🟡PATCHED 080726
+    window.addEventListener("focus", loadUser);
+    return () => window.removeEventListener("focus", loadUser);
+
   }, []);
 
   async function logout() {
