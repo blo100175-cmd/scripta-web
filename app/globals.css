@@ -239,11 +239,11 @@ button{
   width: 360px;
   height: 62px;
   margin-top: 16px;
-  font-size: 16px;
+  font-size: 20px;
   letter-spacing: 1px;
   background: transparent;
   color: white;
-  border: 2px solid white;
+  border: 3px solid white;
   cursor: pointer;
   transition: all 0.2s ease;
   display: block;

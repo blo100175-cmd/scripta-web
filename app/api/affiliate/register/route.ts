@@ -1,5 +1,7 @@
-//SCRIPTA V1.1.140526 - HARDENING
-//SCRIPTA V1.1.170526 - FULL-STATE CENTRALIZATION - CLEANUP + LIGHT HARDENING
+//SCRIPTA - V1.1.140526 - HARDENING
+//SCRIPTA - V1.1.170526 - FULL-STATE CENTRALIZATION - CLEANUP + LIGHT HARDENING
+//SCRIPTA - V1.080726.020 - Affiliate register: fix 403 — use service role key
+
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
@@ -8,7 +10,7 @@ import { NextResponse } from "next/server";
 ========================= */
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! // keep as-is (your current architecture)
+  process.env.SUPABASE_SERVICE_ROLE_KEY!                                 //🟡🟡PATCHED 080726
 );
 
 /* =========================
@@ -20,7 +22,7 @@ export async function POST(req: Request) {
     const referral_code = body?.referral_code;
     const user_id = body?.user_id;
 
-    if (                                          //|-----🟡🟡PATCHED 170526
+    if (                                                                //|-----🟡🟡PATCHED 170526
       typeof referral_code !== "string" ||
       typeof user_id !== "string"
     ) {
@@ -28,9 +30,9 @@ export async function POST(req: Request) {
         { error: "Invalid input format" },
         { status: 400 }
       );
-    }                                             //-----|🟡🟡PATCHED 170526  
+    }                                                                   //-----|🟡🟡PATCHED 170526  
     
-    if (                                          //|-----🟡🟡PATCHED 170526
+    if (                                                                //|-----🟡🟡PATCHED 170526
       !referral_code.trim() ||
       !user_id.trim()
     ) {
@@ -38,9 +40,9 @@ export async function POST(req: Request) {
         { error: "Missing required fields" },
         { status: 400 }
       );
-    }                                             //-----|🟡🟡PATCHED 170526
+    }                                                                   //-----|🟡🟡PATCHED 170526
 
-    if (                                          //|-----🟡🟡PATCHED 170526
+    if (                                                                //|-----🟡🟡PATCHED 170526
       referral_code.length > 100 ||
       user_id.length > 100
     ) {
@@ -48,12 +50,12 @@ export async function POST(req: Request) {
         { error: "Input too long" },
         { status: 400 }
       );
-    }                                             //-----|🟡🟡PATCHED 170526  
+    }                                                                   //-----|🟡🟡PATCHED 170526  
 
     console.log("📥 INPUT:", { referral_code, user_id });
 
     /* ---------------- VALIDATION ---------------- */
-    const { data: profile } = await supabase      //|-----🟡🟡PATCHED 140526
+    const { data: profile } = await supabase                            //|-----🟡🟡PATCHED 140526
       .from("profiles")
       .select("user_id")
       .eq("user_id", user_id)
@@ -64,7 +66,7 @@ export async function POST(req: Request) {
         { error: "Invalid user" },
         { status: 403 }
       );
-    }                                             //-----|🟡🟡PATCHED 140526
+    }                                                                   //-----|🟡🟡PATCHED 140526
 
     if (!referral_code || !user_id) {
       return NextResponse.json(
