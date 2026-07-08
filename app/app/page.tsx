@@ -1,5 +1,6 @@
 //SCRIPTA - V1.030726.01-R
 //SCRIPTA - V1.070726.016 - Affiliate: move referral submission to /app page
+//SCRIPTA - V1.080726.017 - Affiliate: fix referral submission timing on magic link auth
 
 "use client";
 
@@ -66,10 +67,12 @@ export default function Home() {
 
     setAnonId(storedAnon);
 
-    /* ===== REFERRAL SUBMISSION ===== */                               //|-----🟡🟡PATCHED 070726
+    /* ===== REFERRAL SUBMISSION ===== */                               //|-----🟡🟡PATCHED 080726
     const refCode = localStorage.getItem("ref_code");
 
     if (refCode) {
+
+      // Try immediately — may have session already
       supabase.auth.getSession().then(async ({ data }) => {
         const userId = data.session?.user?.id;
         if (userId) {
@@ -83,14 +86,40 @@ export default function Home() {
               }),
             });
             localStorage.removeItem("ref_code");
-            console.log("✅ REFERRAL SUBMITTED FROM /app");
+            console.log("✅ REFERRAL SUBMITTED IMMEDIATELY");
           } catch (err) {
             console.error("❌ REFERRAL SUBMISSION ERROR:", err);
           }
         }
       });
+
+      // Also listen for SIGNED_IN — catches magic link auth
+      const { data: { subscription: refSub } } = supabase.auth.onAuthStateChange(
+        async (_event, session) => {
+          if (_event === "SIGNED_IN" && session?.user?.id) {
+            const stillHasRef = localStorage.getItem("ref_code");
+            if (stillHasRef) {
+              try {
+                await fetch("/api/affiliate/register", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    referral_code: stillHasRef,
+                    user_id: session.user.id,
+                  }),
+                });
+                localStorage.removeItem("ref_code");
+                console.log("✅ REFERRAL SUBMITTED ON SIGNED_IN");
+              } catch (err) {
+                console.error("❌ REFERRAL SUBMISSION ERROR:", err);
+              }
+              refSub.unsubscribe();
+            }
+          }
+        }
+      );
     }
-    /* ===== END REFERRAL SUBMISSION ===== */                           //-----|🟡🟡PATCHED 070726
+    /* ===== END REFERRAL SUBMISSION ===== */                           //-----|🟡🟡PATCHED 080726
 
     /* ===== AUTH SESSION ===== */
     supabase.auth.getSession().then(({ data }) => {
