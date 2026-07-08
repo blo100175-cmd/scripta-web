@@ -1,3 +1,5 @@
+//SCRIPTA - V1.080726.019 - Navbar: bonus counter + Hero: affiliate CTA button
+
 "use client";
 
 import Link from "next/link";
@@ -36,17 +38,18 @@ export default function Hero() {
 
           {/* RIGHT SIDE CTA */}
           <div className="hero-right">
-
             <Link href="/app">
               <button className="cta-btn">
                 TRY FOR FREE
               </button>
             </Link>
-
+            <Link href="/affiliate">
+              <button className="cta-btn-secondary">
+                BE OUR AFFILIATE
+              </button>
+            </Link>
           </div>
-
         </div>
-
       </section>
 
 

@@ -1,4 +1,5 @@
 //SCRIPTA - V1.030726.01-R
+//SCRIPTA - V1.080726.019 - Navbar: bonus counter + Hero: affiliate CTA button
 
 "use client";
 
@@ -21,6 +22,7 @@ export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [tier, setTier] = useState<string>("free");
   const [health, setHealth] = useState<string>("🟢");
+  const [bonusPages, setBonusPages] = useState<number>(0);
 
   useEffect(() => {
 
@@ -60,13 +62,28 @@ export default function Navbar() {
       if (profile?.subscription_status === "expired") {
         setHealth("🔴");
       } else if (usage && usage.page_limit) {
-        const ratio = usage.total_pages / usage.page_limit;
-        if (ratio >= 1) setHealth("🔴");
-        else if (ratio >= 0.8) setHealth("🟡");
+        const pagesLeft = usage.page_limit - (usage.total_pages || 0);
+        const ratio = pagesLeft / usage.page_limit;
+        if (ratio <= 0.05) setHealth("🔴");
+        else if (ratio <= 0.20) setHealth("🟡");
         else setHealth("🟢");
       }
-    }
 
+      // BONUS PAGES CALCULATION                                             //🟡🟡PATCHED 080726
+      if (usage && usage.page_limit) {
+        const baseLimits: Record<string, number> = {
+          free:    30,
+          lite:    100,
+          student: 200,
+          pro:     500,
+          anon:    30,
+        };
+        const baseLimit = baseLimits[profile?.subscription_tier || "free"];
+        const bonus = (usage.page_limit || 0) - baseLimit;
+        if (bonus > 0) setBonusPages(bonus);
+      }
+    }
+    
     loadUser();
 
   }, []);
@@ -90,6 +107,11 @@ export default function Navbar() {
           <>
             <span className="account-indicator">
               {health} {user.email} . {tier}
+              {bonusPages > 0 && (
+                <span className="bonus-counter">
+                  🎁 Bonus: {bonusPages} pages
+                </span>
+              )}
             </span>
             <a href="/affiliate">affiliate</a>
             <Link href="/app">app</Link>
