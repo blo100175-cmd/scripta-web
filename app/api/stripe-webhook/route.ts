@@ -2,6 +2,7 @@
 //SCRIPTA V1.040726.002 - Affiliate: referral submission on registration
 //SCRIPTA V1.040726.003 - Affiliate: commission pending_balance patch, remove duplicate engine
 //SCRIPTA V1.070726.012 - Affiliate: referral bonus pages on checkout
+//SCRIPTA - V1.080726.021 - Affiliate: fix bonus pages — move after user_usage upsert
 
 import Stripe from "stripe";
 import { headers } from "next/headers";
@@ -89,65 +90,6 @@ export async function POST(req: Request) {
 
     const userId = subscription.metadata?.userId;
     const plan = session.metadata?.plan;
-
-    // ===== REFERRAL BONUS PAGES =====                    //|-----🟡🟡PATCHED 070726
-    const bonusMap: Record<string, number> = {
-      lite:    50,
-      student: 100,
-      pro:     200,
-    };
-
-    const bonus = bonusMap[plan as keyof typeof bonusMap];
-
-    if (bonus) {
-
-      const { data: referral } = await supabase
-        .from("referrals")
-        .select("id, bonus_applied")
-        .eq("referred_user_id", userId)
-        .eq("bonus_applied", false)
-        .maybeSingle();
-
-      if (referral) {
-
-        // Apply bonus to page_limit
-        await supabase
-          .from("user_usage")
-          .update({
-            page_limit: supabase.rpc("get_page_limit", { p_user_id: userId, p_month_key: getCurrentMonthKey() }),
-          })
-          .eq("user_id", userId)
-          .eq("month_key", getCurrentMonthKey());
-
-        // Simpler direct update
-        const { data: usageRow } = await supabase
-          .from("user_usage")
-          .select("page_limit")
-          .eq("user_id", userId)
-          .eq("month_key", getCurrentMonthKey())
-          .maybeSingle();
-
-        if (usageRow) {
-          await supabase
-            .from("user_usage")
-            .update({
-              page_limit: (usageRow.page_limit || 0) + bonus,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("user_id", userId)
-            .eq("month_key", getCurrentMonthKey());
-        }
-
-        // Mark bonus as applied
-        await supabase
-          .from("referrals")
-          .update({ bonus_applied: true })
-          .eq("id", referral.id);
-
-        console.log("✅ BONUS PAGES APPLIED:", bonus, "to", userId);
-      }
-    }
-    // ===== END REFERRAL BONUS PAGES =====                //-----|🟡🟡PATCHED 070726
 
     console.log("✅ CHECKOUT COMPLETED", { userId, plan });                 //🟡🟡 PATCHED 6/4/26 - SUCCESS LOGGING
 
@@ -322,14 +264,14 @@ export async function POST(req: Request) {
     const userId = subscription.metadata?.userId;
     const plan = subscription.metadata?.plan;
 
-    console.log("✅ INVOICE PAID", { userId, plan });  //🟡🟡 PATCHED 6/4/26 - SUCCESS LOGGING
+    console.log("✅ INVOICE PAID", { userId, plan });                   //🟡🟡 PATCHED 6/4/26 - SUCCESS LOGGING
   
     /*if (!userId || !plan) {
       console.log("❌ Missing metadata on subscription");
       return new Response("Missing metadata", { status: 200 });
     }*/
 
-    if (!userId || !plan) {                 //|----- 🟡🟡 PATCHED 6/4/26 -FAILSAFE
+    if (!userId || !plan) {                                             //|----- 🟡🟡 PATCHED 6/4/26 -FAILSAFE
       console.error("❌ Missing metadata (invoice.paid)", {
         userId,
         plan,
@@ -338,19 +280,8 @@ export async function POST(req: Request) {
       return new Response("Missing metadata", { status: 400 });
     }                   //-----| 🟡🟡 PATCHED 6/4/26
 
-    // ✅ Update subscriptions table
-    /*await supabase.from("subscriptions")
-      .update({
-        status: subscription.status,
-        current_period_end: new Date(
-          billingPeriodEnd * 1000
-        ).toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId);*/
-
       // ✅ Upsert subscriptions table (ONE ROW PER USER)
-      await supabase.from("subscriptions")          //|-----🟡🟡 PATCHED
+      await supabase.from("subscriptions")                              //|-----🟡🟡 PATCHED
         .upsert({
           user_id: userId,
           plan: plan,
@@ -359,10 +290,10 @@ export async function POST(req: Request) {
             billingPeriodEnd * 1000
           ).toISOString(),
         /*updated_at: new Date().toISOString(),*/
-          updated_at: now,                          //🟡🟡PATCHED 180526
+          updated_at: now,                                              //🟡🟡PATCHED 180526
         }, {
           onConflict: "user_id"
-        });                                       //-----|🟡🟡
+        });                                                             //-----|🟡🟡
 
     // ✅ Sync profiles table
     await supabase.from("profiles")
@@ -370,7 +301,7 @@ export async function POST(req: Request) {
         subscription_status: subscription.status,
         subscription_tier: plan,
       /*updated_at: new Date().toISOString(),*/
-        updated_at: now,                            //🟡🟡PATCHED 180526
+        updated_at: now,                                               //🟡🟡PATCHED 180526
       })
       .eq("user_id", userId);
 
@@ -388,8 +319,57 @@ export async function POST(req: Request) {
       });                                                              //-----|🟡🟡 15/3/26
 
     console.log("🎯 Subscription renewal synced successfully");
+
+    // ===== REFERRAL BONUS PAGES =====                                //|-----🟡🟡PATCHED 070726
+    const bonusMap: Record<string, number> = {
+      lite:    50,
+      student: 100,
+      pro:     200,
+    };
+
+    const bonus = bonusMap[plan as keyof typeof bonusMap];
+
+    if (bonus) {
+
+      const { data: referral } = await supabase
+        .from("referrals")
+        .select("id, bonus_applied")
+        .eq("referred_user_id", userId)
+        .eq("bonus_applied", false)
+        .maybeSingle();
+
+      if (referral) {
+        // Simpler direct update
+        const { data: usageRow } = await supabase
+          .from("user_usage")
+          .select("page_limit")
+          .eq("user_id", userId)
+          .eq("month_key", getCurrentMonthKey())
+          .maybeSingle();
+
+        if (usageRow) {
+          await supabase
+            .from("user_usage")
+            .update({
+              page_limit: (usageRow.page_limit || 0) + bonus,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("user_id", userId)
+            .eq("month_key", getCurrentMonthKey());
+        }
+
+        // Mark bonus as applied
+        await supabase
+          .from("referrals")
+          .update({ bonus_applied: true })
+          .eq("id", referral.id);
+
+        console.log("✅ BONUS PAGES APPLIED:", bonus, "to", userId);
+      }
+    }
+    // ===== END REFERRAL BONUS PAGES =====                            //-----|🟡🟡PATCHED 070726
     
-    // ========== AFFILIATE COMMISSION ENGINE ==========   //|-----🟡🟡 PATCHED 6/4/26 - AFFILIATE COMMISSION
+    // ========== AFFILIATE COMMISSION ENGINE ==========               //|-----🟡🟡 PATCHED 6/4/26 - AFFILIATE COMMISSION
 
     // 🔎 Get amount (Stripe sends in cents)---------------------
     const amount = (invoice.amount_paid || 0) / 100;
@@ -398,23 +378,23 @@ export async function POST(req: Request) {
     const isInitial = invoice.billing_reason === "subscription_create";
 
     // 🔎 Get referral ------------------------------------------
-    const { data: referral } = await supabase
+    const { data: commissionReferral } = await supabase
       .from("referrals")
       .select("*")
       .eq("referred_user_id", userId)
       .maybeSingle();
 
-    if (referral) {
+    if (commissionReferral) {
       const rate = isInitial ? 0.15 : 0.10;
       const commission = amount * rate;
 
       // 🔁 Update referral--------------------------------------
-      await supabase                                  //|-----🟡🟡 PATCHED 7/4/26 - REFERRALS UPDATE
+      await supabase                                                   //|-----🟡🟡 PATCHED 7/4/26 - REFERRALS UPDATE
         .from("referrals")
         .update({
-          total_paid: (referral.total_paid || 0) + amount,
+          total_paid: (commissionReferral.total_paid || 0) + amount,
           total_commission:
-            (referral.total_commission || 0) + commission,
+            (commissionReferral.total_commission || 0) + commission,
           stripe_subscription_id: subscriptionId,
           plan: plan,
         /*updated_at: new Date().toISOString(),*/
@@ -426,16 +406,8 @@ export async function POST(req: Request) {
       const { data: affiliate } = await supabase
         .from("affiliates")
         .select("total_earned, total_referrals, pending_balance")
-        .eq("user_id", referral.referrer_user_id)
+        .eq("user_id", commissionReferral.referrer_user_id)
         .single();
-
-      // 🔁 Update affiliate ------------------------------------
-    /*await supabase                                  
-        .from("affiliates")
-        .update({
-          total_earned: (affiliate?.total_earned || 0) + commission,
-        })
-        .eq("user_id", referral.referrer_user_id);*/                    //COMMENT-OUT 040726
 
         await supabase                                                  //|-----🟡🟡PATCHED 040726
           .from("affiliates")
@@ -447,7 +419,7 @@ export async function POST(req: Request) {
               ((affiliate?.pending_balance || 0) + commission).toFixed(2)
             ),                                                          //-----|🟡🟡PATCHED 040726
           })
-          .eq("user_id", referral.referrer_user_id);
+          .eq("user_id", commissionReferral.referrer_user_id);
 
       // 🔁 increment referral count ONLY on first payment -------
       if (isInitial) {
@@ -456,7 +428,7 @@ export async function POST(req: Request) {
           .update({
             total_referrals: (affiliate?.total_referrals || 0) + 1,
           })
-          .eq("user_id", referral.referrer_user_id);
+          .eq("user_id", commissionReferral.referrer_user_id);
       }
 
       console.log("💰 Affiliate commission recorded", {
