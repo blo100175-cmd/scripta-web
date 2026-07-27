@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import TaglineStrip from "@/components/TaglineStrip";
 
-const supabase = createClient(
+const supabase = createClient(                                                //🔴🔴SCHEDULE FOR CLEANUP LATER
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
@@ -31,7 +31,7 @@ export default function PricingPage() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [hasReferral, setHasReferral] = useState(false);                //🟡🟡PATCHED 070726
+  const [hasReferral, setHasReferral] = useState(false);                      //🟡🟡PATCHED 070726
 
   /* =========================
      LOAD PROFILE (OPTIONAL)
@@ -320,7 +320,7 @@ export default function PricingPage() {
           {/* LITE */}
           <div className="pricing-card">
             <h2>LITE</h2>
-            <p className="price">$3.99 / month</p>
+            <p className="price">$4.99 / month</p>
             {hasReferral && (
               <p className="bonus-badge">🎁 +50 bonus pages this month!</p>
             )}
@@ -344,7 +344,7 @@ export default function PricingPage() {
           {/* STUDENT (FEATURED PLAN) */}
           <div className="pricing-card featured">
             <h2>STUDENT</h2>
-            <p className="price">$7.99 / month</p>
+            <p className="price">$9.99 / month</p>
             {hasReferral && (
               <p className="bonus-badge">🎁 +100 bonus pages this month!</p>
             )}
@@ -368,7 +368,7 @@ export default function PricingPage() {
           {/* PRO */}
           <div className="pricing-card">
             <h2>PRO</h2>
-            <p className="price">$19.99 / month</p>
+            <p className="price">$24.99 / month</p>
             {hasReferral && (
               <p className="bonus-badge">🎁 +200 bonus pages this month!</p>
             )}

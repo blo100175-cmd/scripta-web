@@ -16,7 +16,7 @@ import TaglineStrip from "@/components/TaglineStrip";
 
 export default function RegisterPage() {
 
-  const supabase = getSupabase();           //🟡🟡PATCHED 10/4/26  
+  const supabase = getSupabase();                           //🟡🟡PATCHED 10/4/26  
 
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("");
