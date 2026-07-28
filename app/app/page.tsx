@@ -1,3 +1,4 @@
+//SCRIPTA-DEV 
 //SCRIPTA - V1.030726.01-R
 //SCRIPTA - V1.070726.016 - Affiliate: move referral submission to /app page
 //SCRIPTA - V1.080726.017 - Affiliate: fix referral submission timing on magic link auth
@@ -6,16 +7,13 @@
 
 import { useState, useEffect } from "react";
 //import { createClient } from "@supabase/supabase-js";
-import { getSupabase } from "@/lib/supabaseClient";                          //🟡🟡 PATCHED - 030726 
+import { getSupabase } from "@/lib/supabaseClient";                          //🟡🟡PATCHED - 030726 
 import { extractText, getDocumentProxy } from "unpdf";
 import TaglineStrip from "@/components/TaglineStrip";                        //🟡🟡PATCHED 16/3/26
+import OutputFormatModal from "@/components/OutputFormatModal";              //🟡🟡PATCHED 280726
 
 /* ------------------ SUPABASE CLIENT ------------------ */
-/*const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);*/
-const supabase = getSupabase();                                              //🟡🟡 PATCHED - 030726
+const supabase = getSupabase();                                              //🟡🟡PATCHED - 030726
 
 /* ------------------ PDF EXTRACTION ------------------ */
 async function extractPdfText(file: File): Promise<string> {
@@ -53,6 +51,11 @@ export default function Home() {
 
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  /* ---------------- RENDERER OPTION ----------------- */
+  const [showFormatModal, setShowFormatModal] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState<string>("bullet");
+  const [tier, setTier] = useState<string>("free");
 
   /* ---------------- AUTH SESSION ---------------- */
   useEffect(() => {
@@ -122,8 +125,26 @@ export default function Home() {
     /* ===== END REFERRAL SUBMISSION ===== */                           //-----|🟡🟡PATCHED 080726
 
     /* ===== AUTH SESSION ===== */
-    supabase.auth.getSession().then(({ data }) => {
+  /*supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null);
+      setAuthLoading(false);
+    });*/
+
+    supabase.auth.getSession().then(async ({ data }) => {
+      const sessionUser = data.session?.user ?? null;
+      setUser(sessionUser);
+
+      if (sessionUser) {                                                     //🟡🟡PATCHED 280726
+        const { data: profileRow } = await supabase
+          .from("profiles")
+          .select("subscription_tier")
+          .eq("user_id", sessionUser.id)
+          .maybeSingle();
+        setTier(profileRow?.subscription_tier || "free");
+      } else {
+        setTier("free");
+      }                                                                      //🟡🟡PATCHED 280726
+
       setAuthLoading(false);
     });
 
@@ -146,6 +167,14 @@ export default function Home() {
   }, []);
 
   /* ---------------- FILE HANDLERS ---------------- */
+/*function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.files?.length) return;
+    setFile(e.target.files[0]);
+    setExtractedText("");
+    setDocStatus(null);
+    setPdfUrl(null);
+  }*/
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
 
     if (!e.target.files?.length) return;
@@ -155,7 +184,14 @@ export default function Home() {
     setDocStatus(null);
     setPdfUrl(null);
 
-  }
+    if (tier !== "free") {                                                   //🟡🟡PATCHED 280726
+      setShowFormatModal(true);
+    } else {
+      setSelectedFormat("bullet");
+    }                                                                        //🟡🟡PATCHED 280726
+
+  }    
+
 
   /* ================ UPLOAD FLOW ================= */
   async function uploadFile() {
@@ -179,6 +215,18 @@ export default function Home() {
 
       setStatus("Registering file...");
 
+    /*const { data: inserted, error: insertError } = await supabase
+        .from("incoming_files")
+        .insert({
+          user_id: user ? String(user.id) : anonId,
+          file_name: file.name,
+          bucket: "incoming",
+          storage_path: filePath,
+          status: "pending",
+        })
+        .select("id")
+        .single();*/
+      
       const { data: inserted, error: insertError } = await supabase
         .from("incoming_files")
         .insert({
@@ -187,6 +235,7 @@ export default function Home() {
           bucket: "incoming",
           storage_path: filePath,
           status: "pending",
+          requested_format: selectedFormat,                                 //🟡🟡PATCHED 280726
         })
         .select("id")
         .single();
@@ -344,6 +393,17 @@ export default function Home() {
               {file ? `📄 ${file.name}` : "Tap to upload PDF"}
             </div>
           </label>
+
+          {showFormatModal && (                                             //🟡🟡PATCHED 280726
+            <OutputFormatModal
+              tier={tier as "free" | "lite" | "student" | "pro"}
+              onConfirm={(format) => {
+                setSelectedFormat(format);
+                setShowFormatModal(false);
+              }}
+              onClose={() => setShowFormatModal(false)}
+            />
+          )}
 
           <button
             onClick={uploadFile}
