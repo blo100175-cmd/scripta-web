@@ -560,6 +560,134 @@ button{
   color:#777;
 }
 
+/* ==========================================
+   OUTPUT FORMAT MODAL (270726)
+========================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.format-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.format-modal h2 {
+  font-family: "Fraunces light", serif;
+  font-size: 26px;
+  margin-bottom: 6px;
+}
+
+.format-modal-subtitle {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 24px;
+}
+
+.format-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.format-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.format-option:hover:not(:disabled) {
+  border-color: #2c5cff;
+  background: #f2f6fb;
+}
+
+.format-option-selected {
+  border-color: #2c5cff;
+  background: #eef4ff;
+}
+
+.format-option-locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f3f4f6;
+}
+
+.format-option-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.format-lock-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #b45309;
+  background: #fef3c7;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.format-option-desc {
+  font-size: 13px;
+  color: #666;
+}
+
+.format-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.format-modal-cancel {
+  background: transparent;
+  border: 1px solid #ddd;
+  color: #333;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.format-modal-cancel:hover {
+  background: #f5f5f5;
+}
+
+.format-modal-confirm {
+  background: #2c5cff;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.format-modal-confirm:hover {
+  background: #2047d6;
+}
+
 /* ======================
    MAINPAGE SCROLL HOME BUTTON
 ====================== */
