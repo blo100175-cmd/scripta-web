@@ -184,12 +184,17 @@ export default function Home() {
     setDocStatus(null);
     setPdfUrl(null);
 
-    if (tier !== "free") {                                                   //🟡🟡PATCHED 280726
+  /*if (tier !== "free") {                                                   //🟡🟡PATCHED 280726
       setShowFormatModal(true);
     } else {
       setSelectedFormat("bullet");
-    }                                                                        //🟡🟡PATCHED 280726
-
+    }*/                                                                      //🟡🟡PATCHED 280726
+    
+    if (tier === "lite" || tier === "student" || tier === "pro") {           //🟡🟡PATCHED 280726 v2
+      setShowFormatModal(true);
+    } else {
+      setSelectedFormat("bullet");
+    } 
   }    
 
 
