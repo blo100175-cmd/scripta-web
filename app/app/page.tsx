@@ -2,11 +2,10 @@
 //SCRIPTA - V1.030726.01-R
 //SCRIPTA - V1.070726.016 - Affiliate: move referral submission to /app page
 //SCRIPTA - V1.080726.017 - Affiliate: fix referral submission timing on magic link auth
-
+//SCRIPTA - V1.300726.100 - In-App HTML preview
 "use client";
 
 import { useState, useEffect } from "react";
-//import { createClient } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabaseClient";                          //🟡🟡PATCHED - 030726 
 import { extractText, getDocumentProxy } from "unpdf";
 import TaglineStrip from "@/components/TaglineStrip";                        //🟡🟡PATCHED 16/3/26
@@ -51,6 +50,7 @@ export default function Home() {
 
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [completedDocKey, setCompletedDocKey] = useState<string | null>(null);   //🟠🟠PATCHED 300726
 
   /* ---------------- RENDERER OPTION ----------------- */
   const [showFormatModal, setShowFormatModal] = useState(false);
@@ -240,7 +240,7 @@ export default function Home() {
           bucket: "incoming",
           storage_path: filePath,
           status: "pending",
-          requested_format: selectedFormat,                                 //🟡🟡PATCHED 280726
+          requested_format: selectedFormat,                                   //🟡🟡PATCHED 280726
         })
         .select("id")
         .single();
@@ -352,9 +352,17 @@ export default function Home() {
         continue;
       }
 
+    /*if (row.status === "COMPLETED") {
+        setDocStatus("COMPLETED");
+        setPdfUrl(row.pdf_url);
+        setIsUploading(false);
+        return;
+      }*/
+      
       if (row.status === "COMPLETED") {
         setDocStatus("COMPLETED");
         setPdfUrl(row.pdf_url);
+        setCompletedDocKey(docKey);                                           //🟠🟠PATCHED 300726
         setIsUploading(false);
         return;
       }
@@ -431,12 +439,16 @@ export default function Home() {
           {docStatus === "COMPLETED" && pdfUrl && (
             <div className="text-center mt-6">
               <a
-                href={pdfUrl}
+                href={
+                  selectedFormat === "bubble"
+                    ? `/view/${completedDocKey}`
+                    : pdfUrl
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-green-600 text-white px-6 py-3 rounded"
               >
-                ⬇️ Download PDF
+                {selectedFormat === "bubble" ? "🌳 View Diagram" : "⬇️ Download PDF"}
               </a>
             </div>
           )}
