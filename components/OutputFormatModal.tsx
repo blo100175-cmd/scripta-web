@@ -1,4 +1,5 @@
 //SCRIPTA-DEV 
+//SCRIPTA - V1.300726.100 - RENDERER OPTION (Bullet + VCTF + Cornell + Bubble)
 
 "use client";
 
@@ -31,13 +32,14 @@ const ALL_FORMATS: FormatOption[] = [
   { value: "bullet", label: "Classic Point Form", description: "Clean bulleted summary - always available" },
   { value: "vctf", label: "VCTF Table", description: "Visual Cognitive Thinking Framework - structured table" },
   { value: "cornell", label: "Cornell Method", description: "Notes / cue / summary study layout" },
+  { value: "bubble", label: "Bubble Diagram", description: "Interactive diagram - click nodes to explore" },
 ];
 
 const TIER_ALLOWED: Record<Tier, string[]> = {
   free: ["bullet"],
   lite: ["bullet", "vctf"],
-  student: ["bullet", "vctf", "cornell"],
-  pro: ["bullet", "vctf", "cornell"],
+  student: ["bullet", "vctf", "cornell", "bubble"],
+  pro: ["bullet", "vctf", "cornell", "bubble"],
 };
 
 export default function OutputFormatModal({
