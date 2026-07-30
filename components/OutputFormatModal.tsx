@@ -11,8 +11,8 @@ import { useState } from "react";
  * Shown BEFORE upload begins. Free tier never sees this component at all
  * (parent decides whether to render it based on tier - see integration
  * note below). Lite sees Bullet + VCTF. Student/Pro see Bullet + VCTF +
- * Cornell. Bubble Diagram intentionally excluded - shelved, separate
- * rendering engine, future phase.
+ * Cornell + Fact Tree (internal value "bubble", renamed for users 290726 -
+ * rendered by a separate node, N63, not the PDF-family renderer N61).
  *
  * The selected value is passed back via onConfirm(format) and the CALLER
  * is responsible for including it as `requested_format` in the same
@@ -32,7 +32,7 @@ const ALL_FORMATS: FormatOption[] = [
   { value: "bullet", label: "Classic Point Form", description: "Clean bulleted summary - always available" },
   { value: "vctf", label: "VCTF Table", description: "Visual Cognitive Thinking Framework - structured table" },
   { value: "cornell", label: "Cornell Method", description: "Notes / cue / summary study layout" },
-  { value: "bubble", label: "Bubble Diagram", description: "Interactive diagram - click nodes to explore" },
+  { value: "bubble", label: "Fact Tree", description: "Visual tree diagram - see how facts connect" },
 ];
 
 const TIER_ALLOWED: Record<Tier, string[]> = {
