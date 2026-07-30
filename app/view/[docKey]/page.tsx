@@ -106,7 +106,7 @@ export default function ViewOutputPage() {
   }
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#f5f7fa" }}>
+    <div style={{ position: "fixed", top: 70, left: 0, right: 0, bottom: 0, background: "#f5f7fa" }}>
       {htmlContent && (
         <iframe
           title="Document preview"

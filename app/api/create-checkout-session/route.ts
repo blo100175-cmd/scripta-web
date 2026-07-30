@@ -1,3 +1,4 @@
+//SCRIPTA-DEV
 //SCRIPTA V1.1.140526 - BUG FIXING - SECURITY GAP
 //SCRIPTA V1.1.180526 - FULL-STATE CENTRLIZATION - CLEANUP 
 import Stripe from "stripe";
@@ -6,15 +7,15 @@ import { createClient } from "@supabase/supabase-js";     //🟡🟡PATCHED 1405
 
 /*const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);*/
 
-function getStripe() {                       //|-----🟡🟡 PATCHED 30/3/26
+function getStripe() {                                    //|-----🟡🟡 PATCHED 30/3/26
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) {
     throw new Error("Missing Stripe key");
   }
   return new Stripe(key);
-}                                           //-----|🟡🟡 30/3/26
+}                                                         //-----|🟡🟡 30/3/26
 
-function getSupabase() {                    //|-----🟡🟡PATCHED 140526 - SECURITY GAP PATCH
+function getSupabase() {                                  //|-----🟡🟡PATCHED 140526 - SECURITY GAP PATCH
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -23,7 +24,7 @@ function getSupabase() {                    //|-----🟡🟡PATCHED 140526 - SEC
   }
 
   return createClient(url, key);
-}                                           //-----|🟡🟡PATCHED 140526
+}                                                         //-----|🟡🟡PATCHED 140526
 
 
 export async function POST(req: Request) {
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
 
     const { userId, plan } = await req.json();
 
-    if (                                    //|-----🟡🟡PATCHED 180526
+    if (                                                  //|-----🟡🟡PATCHED 180526
       typeof plan !== "string" ||
       (userId &&
        typeof userId !== "string")
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
         { error: "Invalid request format" },
         { status: 400 }
       );
-    }                                       //-----|🟡🟡PATCHED 180526
+    }                                                     //-----|🟡🟡PATCHED 180526
 
     if (!plan.trim()) {
       return NextResponse.json(
