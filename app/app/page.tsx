@@ -1,4 +1,4 @@
-//SCRIPTA-DEV 
+//SCRIPTA-MAIN
 //SCRIPTA - V1.030726.01-R
 //SCRIPTA - V1.070726.016 - Affiliate: move referral submission to /app page
 //SCRIPTA - V1.080726.017 - Affiliate: fix referral submission timing on magic link auth
