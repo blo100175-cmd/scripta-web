@@ -30,7 +30,7 @@ type FormatOption = {
 
 const ALL_FORMATS: FormatOption[] = [
   { value: "bullet", label: "Classic Point Form", description: "Clean bulleted summary - always available" },
-  { value: "vctf", label: "VCTF Table", description: "Visual Cognitive Thinking Framework - structured table" },
+  { value: "vctf", label: "VCTF Table", description: "Visual Communication Through Freehand - structured table" },
   { value: "cornell", label: "Cornell Method", description: "Notes / cue / summary study layout" },
   { value: "bubble", label: "Fact Tree", description: "Visual tree diagram - see how facts connect" },
 ];
